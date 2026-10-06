@@ -33,15 +33,39 @@ def eur(v):
     return "€ " + s
 
 
+def srcset(base, R):
+    return f'srcset="{R}assets/img/p/{base}-sm.webp 600w, {R}assets/img/p/{base}.webp 1200w"'
+
+
 def img(base, R, sm=False):
     return f"{R}assets/img/p/{base}{'-sm' if sm else ''}.webp"
 
 
 # ---------------------------------------------------------------- layout
 
-def head(R, path, title, desc, extra="", og_img=None):
+ORG_ID = DOMAIN + "#organisatie"
+SITE_ID = DOMAIN + "#website"
+LASTMOD = "2026-10-06"
+
+
+def ld(obj):
+    return f'<script type="application/ld+json">{json.dumps(obj, ensure_ascii=False)}</script>\n'
+
+
+def head(R, path, title, desc, extra="", og_img=None, og_type="website", preload=None, product=None,
+         robots="index,follow,max-image-preview:large,max-snippet:-1"):
     canon = DOMAIN + path
     og = og_img or "assets/img/p/diabetes-2-pocket-sportlegging-1.webp"
+    pre = ""
+    if preload:
+        src = preload if preload.endswith(".webp") else f"assets/img/p/{preload}.webp"
+        sset = "" if preload.endswith(".webp") else f' imagesrcset="{R}assets/img/p/{preload}-sm.webp 600w, {R}assets/img/p/{preload}.webp 1200w" imagesizes="(max-width:900px) 100vw, 600px"'
+        pre = f'<link rel="preload" as="image" href="{R}{src}"{sset} fetchpriority="high">\n'
+    prod = ""
+    if product:
+        prod = (f'<meta property="product:price:amount" content="{product[0]:.2f}">\n'
+                f'<meta property="product:price:currency" content="EUR">\n'
+                f'<meta property="product:brand" content="Diabeticswear">\n')
     return f"""<!doctype html>
 <html lang="nl" data-root="{R}">
 <head>
@@ -49,17 +73,29 @@ def head(R, path, title, desc, extra="", og_img=None):
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{e(title)}</title>
 <meta name="description" content="{e(desc)}">
+<meta name="robots" content="{robots}">
 <link rel="canonical" href="{canon}">
-<meta property="og:type" content="website">
+<link rel="alternate" hreflang="nl" href="{canon}">
+<link rel="alternate" hreflang="x-default" href="{canon}">
+<meta property="og:type" content="{og_type}">
+<meta property="og:locale" content="nl_NL">
 <meta property="og:site_name" content="Diabeticswear">
 <meta property="og:title" content="{e(title)}">
 <meta property="og:description" content="{e(desc)}">
 <meta property="og:url" content="{canon}">
 <meta property="og:image" content="{DOMAIN}{og}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="1200">
+<meta property="og:image:alt" content="{e(title)}">
+{prod}<meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#2BAA92">
-<link rel="icon" href="{R}assets/img/favicon.png" type="image/png">
-<link rel="apple-touch-icon" href="{R}assets/img/logo-dw.png">
-<link rel="stylesheet" href="{R}assets/css/style.css">
+<meta name="format-detection" content="telephone=no">
+<link rel="icon" href="{R}favicon.ico" sizes="48x48">
+<link rel="icon" href="{R}assets/img/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="{R}assets/img/apple-touch-icon.png">
+<link rel="manifest" href="{R}site.webmanifest">
+<link rel="sitemap" type="application/xml" href="{R}sitemap.xml">
+{pre}<link rel="stylesheet" href="{R}assets/css/style.css">
 {extra}</head>
 <body>
 <a class="skip" href="#main">Naar de inhoud</a>
@@ -101,11 +137,11 @@ def header(R, active):
 <header class="header">
   <div class="container">
     {logo(R)}
-    <button class="menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="nav"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    <button class="menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="nav"><svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
     <nav class="nav" id="nav" aria-label="Hoofdmenu">
       {"".join(items)}
     </nav>
-    <button class="cart-btn" aria-label="Winkelmand openen"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1 13H7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg><span class="label">Mand</span><span class="cart-count">0</span></button>
+    <button class="cart-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 7h12l-1 13H7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg><span class="label">Mand</span><span class="cart-count">0</span><span class="sr-only"> artikelen in winkelmand</span></button>
   </div>
 </header>
 """
@@ -119,7 +155,7 @@ def footer(R):
         {logo(R)}
         <p>Kleding met slimme pompzakjes en een discrete slangdoorvoer, en accessoires die het leven met diabetes makkelijker maken.</p>
       </div>
-      <div><h4>Shop</h4><ul>
+      <div><h2 class="fh">Shop</h2><ul>
         <li><a href="{R}diabetes-t-shirts-insulinepomp/">T-shirts</a></li>
         <li><a href="{R}diabetes-hemden-insulinepomp/">Hemden</a></li>
         <li><a href="{R}diabetes-2-pocket-sportlegging/">Sportlegging</a></li>
@@ -128,13 +164,13 @@ def footer(R):
         <li><a href="{R}productpagina-patch-pleisters/">Patch pleisters</a></li>
         <li><a href="{R}producten-kleding-accessoires-overig/">Accessoires</a></li>
       </ul></div>
-      <div><h4>Service</h4><ul>
+      <div><h2 class="fh">Service</h2><ul>
         <li><a href="{R}veelgestelde-vragen/">Veelgestelde vragen</a></li>
         <li><a href="{R}terugbetaalde-retourneringen/">Retourbeleid</a></li>
         <li><a href="{R}over-ons/">Over ons</a></li>
         <li><a href="{R}contact/">Contact</a></li>
       </ul></div>
-      <div><h4>Contact</h4><ul>
+      <div><h2 class="fh">Contact</h2><ul>
         <li><a href="mailto:{MAIL}">{MAIL}</a></li>
         <li><a href="{TEL_LINK}">{TEL}</a></li>
         <li>De Wel 14-16<br>3871 MV Hoevelaken</li>
@@ -186,10 +222,10 @@ def footer(R):
 """
 
 
-def page(path, title, desc, body, active=None, extra="", og=None):
+def page(path, title, desc, body, active=None, extra="", og=None, **kw):
     depth = path.count("/")
     R = "../" * depth
-    out = head(R, path, title, desc, extra, og) + header(R, active if active is not None else path) + \
+    out = head(R, path, title, desc, extra, og, **kw) + header(R, active if active is not None else path) + \
         f'<main id="main">\n{body(R)}\n</main>\n' + footer(R)
     fp = os.path.join(ROOT, path, "index.html") if path else os.path.join(ROOT, "index.html")
     os.makedirs(os.path.dirname(fp), exist_ok=True)
@@ -210,21 +246,31 @@ def price_html(p):
     return eur(p["price"])
 
 
-def card(p, R, order=0):
+def card(p, R, order=0, eager=False):
     alt = e(p["name"])
-    second = f'<img class="alt" src="{img(p["imgs"][1], R, True)}" alt="" loading="lazy" width="600" height="600">' if len(p["imgs"]) > 1 else ""
+    second = f'<img class="alt" src="{img(p["imgs"][1], R, True)}" {srcset(p["imgs"][1], R)} sizes="(max-width:520px) 100vw, (max-width:1000px) 50vw, 280px" alt="" loading="lazy" width="600" height="600">' if len(p["imgs"]) > 1 else ""
     tag = f'<span class="tag">{e(p["tag"])}</span>' if p.get("tag") else ""
     cols = p.get("colors", [])
     dots = '<div class="dots">' + "".join(f'<i style="background:{c[1]}" title="{e(c[0])}"></i>' for c in cols) + "</div>" if len(cols) > 1 else ""
     cats = p["cat"] + (" kleding" if p["group"] in ("sport", "shirts", "sokken") else "")
     price = p["variants"][0][1] if p.get("variants") else p["price"]
     return (f'<a class="card" href="{R}product/{p["slug"]}/" data-cats="{cats}" data-price="{price}" data-order="{order}">'
-            f'<div class="card-media"><img src="{img(p["imgs"][0], R, True)}" alt="{alt}" loading="lazy" width="600" height="600">{second}{tag}</div>'
+            f'<div class="card-media"><img src="{img(p["imgs"][0], R, True)}" {srcset(p["imgs"][0], R)} sizes="(max-width:520px) 100vw, (max-width:1000px) 50vw, 280px" alt="{alt}" {"" if eager else 'loading="lazy" '}width="600" height="600">{second}{tag}</div>'
             f'<div class="card-body"><small>{CATLABEL[p["cat"]]}</small><h3>{alt}</h3>{dots}<span class="price">{price_html(p)}</span></div></a>')
 
 
-def grid(ps, R, gid=""):
-    return f'<div class="grid"{f" id={gid}" if gid else ""}>' + "".join(card(p, R, i) for i, p in enumerate(ps)) + "</div>"
+def grid(ps, R, gid="", eager=0, title=None):
+    return (f'<h2 class="sr-only">{e(title)}</h2>' if title else "") + f'<div class="grid"{f" id={gid}" if gid else ""}>' + "".join(card(p, R, i, i < eager) for i, p in enumerate(ps)) + "</div>"
+
+
+def collection_ld(path, name, desc, ps, trail):
+    items = [{"@type": "ListItem", "position": i + 1, "url": f'{DOMAIN}product/{p["slug"]}/', "name": p["name"]} for i, p in enumerate(ps)]
+    crumbs_l = [{"@type": "ListItem", "position": 1, "name": "Home", "item": DOMAIN}] + \
+        [{"@type": "ListItem", "position": i + 2, "name": n, "item": DOMAIN + h} for i, (n, h) in enumerate(trail)]
+    return ld({"@context": "https://schema.org", "@type": "CollectionPage", "@id": DOMAIN + path, "url": DOMAIN + path, "name": name,
+               "description": desc, "inLanguage": "nl-NL", "isPartOf": {"@id": SITE_ID},
+               "mainEntity": {"@type": "ItemList", "numberOfItems": len(ps), "itemListElement": items}}) + \
+        ld({"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": crumbs_l})
 
 
 def hero_small(eyebrow, title, text, R):
@@ -264,7 +310,7 @@ USP_ICON = {
 
 def usp(i, t, d):
     return (f'<div class="usp"><div class="usp-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
-            f'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">{USP_ICON[i]}</svg></div><div><h3>{t}</h3><p>{d}</p></div></div>')
+            f'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">{USP_ICON[i]}</svg></div><div><h2 class="uh">{t}</h2><p>{d}</p></div></div>')
 
 
 def usps_service():
@@ -300,10 +346,21 @@ def newsletter_contact(R):
 def build_home():
     feat = [BY[s] for s in ("patch-pleister-freestyle-libre-2", "diabetes-2-pocket-sportlegging", "diabetes-2-pocket-bikershort", "diabetes-v-hals-t-shirt")]
     patches = [p for p in PRODUCTS if p["cat"] == "patches"]
-    ld = json.dumps({"@context": "https://schema.org", "@type": "Organization", "name": "Diabeticswear", "url": DOMAIN,
-                     "email": MAIL, "telephone": "+31610022060",
-                     "address": {"@type": "PostalAddress", "streetAddress": "De Wel 14-16", "postalCode": "3871 MV",
-                                 "addressLocality": "Hoevelaken", "addressCountry": "NL"}}, ensure_ascii=False)
+    org = {"@context": "https://schema.org", "@graph": [
+        {"@type": ["Organization", "OnlineStore"], "@id": ORG_ID, "name": "Diabeticswear", "url": DOMAIN,
+         "logo": {"@type": "ImageObject", "url": DOMAIN + "assets/img/logo-dw.png", "width": 192, "height": 192},
+         "image": DOMAIN + "assets/img/p/diabetes-2-pocket-sportlegging-1.webp",
+         "description": "Webshop voor kleding met pompzakjes en slangdoorvoer voor mensen met een insulinepomp, transparante patch pleisters voor CGM-sensoren en pods, en accessoires.",
+         "email": MAIL, "telephone": "+31610022060", "vatID": "NL004919866B33",
+         "identifier": {"@type": "PropertyValue", "propertyID": "KvK", "value": "91840376"},
+         "address": {"@type": "PostalAddress", "streetAddress": "De Wel 14-16", "postalCode": "3871 MV",
+                     "addressLocality": "Hoevelaken", "addressCountry": "NL"},
+         "areaServed": ["NL", "BE"],
+         "contactPoint": {"@type": "ContactPoint", "contactType": "customer service", "email": MAIL, "telephone": "+31610022060",
+                          "availableLanguage": ["nl"], "areaServed": ["NL", "BE"]},
+         "hasMerchantReturnPolicy": RETURN_POLICY,
+         "knowsAbout": ["kleding voor insulinepomp", "diabetes kleding", "patch pleisters voor CGM-sensoren", "insulinepomp dragen tijdens sporten"]},
+        {"@type": "WebSite", "@id": SITE_ID, "url": DOMAIN, "name": "Diabeticswear", "inLanguage": "nl-NL", "publisher": {"@id": ORG_ID}}]}
 
     def body(R):
         reviews = C["reviews"]
@@ -320,9 +377,9 @@ def build_home():
       <div class="hero-badges"><span>2 zakjes voor je pomp</span><span>Gaatje voor de infuusslang</span><span>14 dagen retour</span></div>
     </div>
     <div class="hero-visual" aria-hidden="true">
-      <img class="h1" src="{img("diabetes-2-pocket-sportlegging-1", R)}" alt="">
-      <img class="h2" src="{img("patch-pleister-freestyle-libre-2-1", R, True)}" alt="">
-      <img class="h3" src="{img("diabetes-v-hals-t-shirt-3", R, True)}" alt="">
+      <img class="h1" src="{img("diabetes-2-pocket-sportlegging-1", R)}" alt="" width="1200" height="1200" fetchpriority="high">
+      <img class="h2" src="{img("patch-pleister-freestyle-libre-2-1", R, True)}" {srcset("patch-pleister-freestyle-libre-2-1", R)} sizes="(max-width:860px) 45vw, 240px" alt="" width="600" height="600">
+      <img class="h3" src="{img("diabetes-v-hals-t-shirt-3", R, True)}" {srcset("diabetes-v-hals-t-shirt-3", R)} sizes="(max-width:860px) 45vw, 260px" alt="" width="600" height="600">
     </div>
   </div>
 </section>
@@ -413,7 +470,7 @@ def build_home():
 {newsletter_contact(R)}"""
     page("", "De diabetesshop voor insulinepomp gebruikers | Diabeticswear",
          "Kleding met pompzakjes en discrete slangdoorvoer, en transparante patch pleisters voor je sensor. Gratis verzending in NL vanaf € 30.",
-         body, extra=f'<script type="application/ld+json">{ld}</script>\n')
+         body, extra=ld(org), preload="assets/img/p/diabetes-2-pocket-sportlegging-1.webp")
 
 
 SHOP_ORDER = ["diabetes-2-pocket-sportlegging", "diabetes-2-pocket-bikershort", "sportlegging-bikershort-insulinepomp", "2-pocket-sport-rok-voor-diabetes",
@@ -428,12 +485,14 @@ def build_shop():
 
     def body(R):
         ch = "".join(f'<button class="chip" type="button" data-cat="{k}" aria-pressed="false">{l}</button>' for k, l in chips)
-        return (hero_small("Winkel", "Alle producten", "Kleding met pompzakjes, patch pleisters en accessoires voor het leven met diabetes.", R) +
+        return (crumbs(R, [("Alle producten", None)]) + hero_small("Winkel", "Alle producten", "Kleding met pompzakjes, patch pleisters en accessoires voor het leven met diabetes.", R) +
                 f'<section><div class="container"><div class="filters" role="group" aria-label="Filter op categorie">{ch}'
                 f'<label class="sr-only" for="sort">Sorteren</label><select id="sort"><option value="std">Aanbevolen</option><option value="laag">Prijs: laag naar hoog</option><option value="hoog">Prijs: hoog naar laag</option></select></div>'
-                f'<p class="small" id="shop-count" style="margin:-.6rem 0 1rem"></p>' + grid([BY[s] for s in SHOP_ORDER], R, "shop-grid") + '</div></section>' +
+                f'<p class="small" id="shop-count" style="margin:-.6rem 0 1rem"></p>' + grid([BY[s] for s in SHOP_ORDER], R, "shop-grid", eager=4, title="Alle producten") + '</div></section>' +
                 f'<section class="bg-white" style="padding:2.5rem 0">{usps_service()}</section>')
-    page("winkel/", "Alle producten | Diabeticswear", "Bekijk alle producten van Diabeticswear: t-shirts, hemden, sportleggings en bikershorts met pompzakjes, compressiesokken, patch pleisters en accessoires.", body)
+    desc = "Alle producten van Diabeticswear: t-shirts, hemden, sportleggings en bikershorts met pompzakjes, compressiesokken, patch pleisters en accessoires."
+    page("winkel/", "Alle producten voor insulinepomp-gebruikers | Diabeticswear", desc, body,
+         extra=collection_ld("winkel/", "Alle producten", desc, [BY[s] for s in SHOP_ORDER], [("Alle producten", "winkel/")]))
 
 
 def build_category(c):
@@ -441,8 +500,8 @@ def build_category(c):
     ps.sort(key=lambda p: SHOP_ORDER.index(p["slug"]))
 
     def body(R):
-        out = hero_small(c["name"], c["h1"], e(c["intro"]), R)
-        out += f'<section><div class="container">{grid(ps, R)}</div></section>'
+        out = crumbs(R, [(c["name"], None)]) + hero_small(c["name"], c["h1"], e(c["intro"]), R)
+        out += f'<section><div class="container">{grid(ps, R, eager=4, title=c["name"])}</div></section>'
         if c.get("body"):
             bl = "".join(f"<li>{e(b)}</li>" for b in c.get("bullets", []))
             out += f'<section class="bg-white"><div class="container faq"><h2>Over onze {e(c["name"].lower())}</h2>'
@@ -450,7 +509,55 @@ def build_category(c):
         if c.get("faq"):
             out += f'<section><div class="container faq"><div style="text-align:center;margin-bottom:2rem"><span class="eyebrow">FAQ</span><h2>Veelgestelde vragen</h2></div>{faq_html(c["faq"])}</div></section>'
         return out + newsletter_contact(R)
-    page(c["slug"] + "/", f'{c["h1"]} | Diabeticswear', c["intro"], body)
+    extra = collection_ld(c["slug"] + "/", c["h1"], c["intro"], ps, [(c["name"], c["slug"] + "/")])
+    if c.get("faq"):
+        extra += ld({"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [
+            {"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in c["faq"]]})
+    page(c["slug"] + "/", f'{c["h1"]} | Diabeticswear', c["intro"], body, extra=extra)
+
+
+RETURN_POLICY = {"@type": "MerchantReturnPolicy", "applicableCountry": ["NL", "BE"],
+                 "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnWindow", "merchantReturnDays": 14,
+                 "returnMethod": "https://schema.org/ReturnByMail", "returnFees": "https://schema.org/ReturnShippingFees",
+                 "url": DOMAIN + "terugbetaalde-retourneringen/"}
+
+SHIP_QA = ("Wat zijn de verzendkosten en levertijd?",
+           "Binnen Nederland is verzending gratis vanaf € 30 (anders € 4,25), naar België vanaf € 75 (anders € 5,25). "
+           "We streven ernaar je bestelling binnen 2-3 werkdagen te leveren.")
+RETURN_QA = ("Kan ik dit product retourneren?",
+             "Ja, binnen 14 dagen na ontvangst, ongebruikt en in de originele verpakking. De retourkosten zijn voor eigen rekening, "
+             "tenzij het product defect of verkeerd geleverd is.")
+
+
+def product_faq(p):
+    spec = dict((k.lower(), v) for k, v in p["specs"])
+    zak = spec.get("afmetingen zakjes", "")
+    if p["group"] == "shirts":
+        qa = [("Past mijn insulinepomp in de zakjes?", f"De twee zakjes aan de voorkant zijn {zak} en sluiten met klittenband. Ze passen de meest gangbare insulinepompen. Twijfel je? Mail het type pomp naar {MAIL}."),
+              ("Hoe loopt de infuusslang?", "Aan de binnenkant zitten twee stevig afgewerkte gaatjes. Daardoor leid je de slang onder het shirt naar je pomp, zonder dat er iets loshangt."),
+              ("Welke maat moet ik kiezen?", "De t-shirts en hemden vallen groot uit. We adviseren een maat kleiner te bestellen dan normaal. Bekijk de maattabel op deze pagina."),
+              ("Van welk materiaal is het gemaakt?", f"{spec.get('materiaal', '100% katoen')}: zacht, ademend en geschikt voor dagelijks gebruik, ook 's nachts.")]
+    elif p["group"] == "sport":
+        qa = [("Past mijn insulinepomp in de zakken?", "De twee zijzakken zijn diep genoeg voor de meest gangbare insulinepompen en houden je pomp stabiel op zijn plek." + (f" De zakjes zijn {zak}." if zak else "") + f" Twijfel je? Mail het type pomp naar {MAIL}."),
+              ("Hoe loopt de infuusslang?", "Aan de binnenkant van de zak zit een discreet gaatje. Daardoor voer je de infuusslang netjes door, zodat hij niet loshangt of blijft haken."),
+              ("Van welk materiaal is het gemaakt?", f"{spec.get('materiaal', '90% polyester, 10% elastaan')}: lichtgewicht, ademend, sneldrogend en elastisch."),
+              ("Welke maten zijn er?", "Maat S, M, L en XL.")]
+    elif p["group"] == "patches":
+        fit = spec.get("geschikt voor", "")
+        qa = [(f"Voor welke sensor of pod is deze pleister?", f"Deze patch pleister is gemaakt voor de {fit}. Afmetingen: {spec.get('afmetingen', '')}. De uitsparing laat je sensor of pod vrij."),
+              ("Is de pleister waterbestendig?", "Ja, de pleister is water- en zweetbestendig en geschikt voor sporten, douchen en zwemmen."),
+              ("Hoe gebruik ik de pleister?", "Plak de pleister over de rand van je sensor of pod op schone, droge huid. Gebruik een nieuwe pleister bij elke wissel."),
+              ("Hoeveel pleisters zitten er in een verpakking?", spec.get("aantal", "") + ".")]
+    elif p["group"] == "sokken":
+        qa = [("Welke maat hebben de sokken?", "De sokken zijn unisex en passen maat 37-48."),
+              ("Wat is er anders aan deze sokken?", "Ze hebben een losse pasvorm, lichte compressie en een naadloze, niet-knellende manchet."),
+              ("Van welk materiaal zijn ze gemaakt?", spec.get("materiaal", "") + "."),
+              ("Zijn deze sokken een medisch hulpmiddel?", "Nee. Heb je klachten aan je voeten, overleg dan met je arts of podotherapeut welke sokken voor jou geschikt zijn.")]
+    else:
+        qa = [("Wat past er in de Insuline Organizer?", "Eén insulinepen en vijf naalden, in twee ronde openingen van 2 cm doorsnee."),
+              ("Hoe groot is de organizer?", "16,5 cm hoog, 4,8 cm breed en 2,8 cm diep: past in een tas, broekzak of jaszak."),
+              ("Van welk materiaal is hij gemaakt?", "PLA, een bioplastic uit hernieuwbare grondstoffen. Niet te lang in de zon of bij hoge temperaturen bewaren.")]
+    return qa + [SHIP_QA, RETURN_QA]
 
 
 def related(p):
@@ -466,15 +573,45 @@ def build_product(p):
     rules = p.get("rules", {})
     pdata = {"slug": p["slug"], "price": p["price"], "imgs": imgs, "sizes": sizes, "colors": [c[0] for c in colors],
              "rules": rules, "variants": variants, "colorLabel": p.get("color_label", "Kleur")}
-    offers = {"@type": "Offer", "priceCurrency": "EUR", "price": f'{p["price"]:.2f}', "url": DOMAIN + path}
+    shipping = [
+        {"@type": "OfferShippingDetails",
+         "shippingRate": {"@type": "MonetaryAmount", "value": 4.25 if p["price"] < 30 else 0, "currency": "EUR"},
+         "shippingDestination": {"@type": "DefinedRegion", "addressCountry": "NL"},
+         "deliveryTime": {"@type": "ShippingDeliveryTime",
+                          "handlingTime": {"@type": "QuantitativeValue", "minValue": 0, "maxValue": 1, "unitCode": "DAY"},
+                          "transitTime": {"@type": "QuantitativeValue", "minValue": 1, "maxValue": 2, "unitCode": "DAY"}}},
+        {"@type": "OfferShippingDetails",
+         "shippingRate": {"@type": "MonetaryAmount", "value": 5.25 if p["price"] < 75 else 0, "currency": "EUR"},
+         "shippingDestination": {"@type": "DefinedRegion", "addressCountry": "BE"},
+         "deliveryTime": {"@type": "ShippingDeliveryTime",
+                          "handlingTime": {"@type": "QuantitativeValue", "minValue": 0, "maxValue": 1, "unitCode": "DAY"},
+                          "transitTime": {"@type": "QuantitativeValue", "minValue": 1, "maxValue": 3, "unitCode": "DAY"}}}]
+    offer_base = {"priceCurrency": "EUR", "availability": "https://schema.org/InStock", "itemCondition": "https://schema.org/NewCondition",
+                  "url": DOMAIN + path, "seller": {"@id": ORG_ID}, "shippingDetails": shipping, "hasMerchantReturnPolicy": RETURN_POLICY}
     if variants:
-        offers = {"@type": "AggregateOffer", "priceCurrency": "EUR", "lowPrice": f"{variants[0][1]:.2f}", "highPrice": f"{variants[-1][1]:.2f}", "offerCount": len(variants)}
-    ld = {"@context": "https://schema.org", "@type": "Product", "name": p["name"], "description": p["meta"],
-          "image": [f"{DOMAIN}assets/img/p/{b}.webp" for b in imgs], "brand": {"@type": "Brand", "name": "Diabeticswear"}, "offers": offers}
+        offers = [dict(offer_base, **{"@type": "Offer", "name": v[0], "price": f"{v[1]:.2f}", "sku": f'{p["slug"]}-{v[0].split()[0]}'}) for v in variants]
+    else:
+        offers = dict(offer_base, **{"@type": "Offer", "price": f'{p["price"]:.2f}'})
+    spec = dict((k.lower(), v) for k, v in p["specs"])
+    ld_prod = {"@context": "https://schema.org", "@type": "Product", "@id": DOMAIN + path + "#product", "name": p["name"],
+               "description": p["seo_desc"], "sku": p["slug"], "category": CATLABEL[p["cat"]], "url": DOMAIN + path,
+               "image": [f"{DOMAIN}assets/img/p/{b}.webp" for b in imgs], "brand": {"@type": "Brand", "name": "Diabeticswear"},
+               "manufacturer": {"@id": ORG_ID}, "offers": offers}
+    if colors:
+        ld_prod["color"] = ", ".join(c[0] for c in colors)
+    if sizes:
+        ld_prod["size"] = ", ".join(sizes)
+    if "materiaal" in spec:
+        ld_prod["material"] = spec["materiaal"]
+    if p["group"] in ("sport", "shirts", "sokken"):
+        ld_prod["audience"] = {"@type": "PeopleAudience", "healthCondition": {"@type": "MedicalCondition", "name": "Diabetes"}}
+    ld_prod["additionalProperty"] = [{"@type": "PropertyValue", "name": k, "value": v} for k, v in p["specs"]]
     crumbs_ld = {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
         {"@type": "ListItem", "position": 1, "name": "Home", "item": DOMAIN},
         {"@type": "ListItem", "position": 2, "name": CATLABEL[p["cat"]], "item": DOMAIN + CATPAGE[p["cat"]] + "/"},
-        {"@type": "ListItem", "position": 3, "name": p["name"]}]}
+        {"@type": "ListItem", "position": 3, "name": p["name"], "item": DOMAIN + path}]}
+    pfaq = product_faq(p)
+    PAGE_IMGS[path] = imgs
     rv = [r for r in C["reviews"] if r[3] == p["group"]]
     if p["group"] == "sport":
         rv = [r for r in C["reviews"] if "Bikershort" in r[1]]
@@ -528,7 +665,7 @@ def build_product(p):
                      f'<p><strong>Retour:</strong> binnen 14 dagen na ontvangst, ongebruikt en in de originele verpakking. Retourkosten zijn voor eigen rekening, tenzij het product defect of verkeerd geleverd is. '
                      f'<a href="{R}terugbetaalde-retourneringen/">Lees ons retourbeleid</a>.</p>'))
         tabbar = "".join(f'<button role="tab" aria-selected="{str(i == 0).lower()}" aria-controls="t-{k}" id="tab-{k}">{l}</button>' for i, (k, l, _) in enumerate(tabs))
-        panels = "".join(f'<div class="tabpanel" role="tabpanel" id="t-{k}" aria-labelledby="tab-{k}"{" hidden" if i else ""}>{c}</div>' for i, (k, l, c) in enumerate(tabs))
+        panels = "".join(f'<div class="tabpanel" role="tabpanel" id="t-{k}" aria-labelledby="tab-{k}"{" hidden" if i else ""}><h2 class="sr-only">{l}</h2>{c}</div>' for i, (k, l, c) in enumerate(tabs))
         rel = related(p)
         nav_btns = (f'<button class="gnav prev" data-d="-1" aria-label="Vorige afbeelding">‹</button><button class="gnav next" data-d="1" aria-label="Volgende afbeelding">›</button>' if len(imgs) > 1 else "")
         return f"""<main class="container">
@@ -537,7 +674,7 @@ def build_product(p):
     <div>
       <div class="gallery-main" id="gmain" role="button" tabindex="0" aria-label="Afbeelding vergroten">
         {f'<span class="tag">{e(p["tag"])}</span>' if p.get("tag") else ""}
-        <img src="{img(imgs[0], R)}" alt="{alt}" width="1200" height="1200">{nav_btns}
+        <img src="{img(imgs[0], R)}" {srcset(imgs[0], R)} sizes="(max-width:900px) 100vw, 600px" alt="{alt}" width="1200" height="1200" fetchpriority="high">{nav_btns}
       </div>
       <div class="thumbs" id="thumbs">{thumbs if len(imgs) > 1 else ""}</div>
     </div>
@@ -560,6 +697,8 @@ def build_product(p):
   <div class="tabs" role="tablist">{tabbar}</div>
   {panels}
 
+  <section class="faq-mini" aria-labelledby="pfaq-title"><div class="section-head"><div><span class="eyebrow">Vragen</span><h2 id="pfaq-title">Veelgestelde vragen over dit product</h2></div></div><div class="faq" style="max-width:none">{faq_html(pfaq)}</div></section>
+
   {f'<section style="padding-top:1rem"><div class="section-head"><div><span class="eyebrow">Recensies</span><h2>Wat klanten zeggen</h2></div></div>{reviews_html(rv)}</section>' if rv else ""}
 
   <section style="padding-top:2rem">
@@ -569,16 +708,18 @@ def build_product(p):
 </main>
 <div class="sticky-buy" id="sticky-buy"><strong>{alt}<br><span class="js-price">{eur(start)}</span></strong><button class="btn btn-primary" id="sticky-add" type="button">In winkelmand</button></div>
 <script type="application/json" id="pdata">{json.dumps(pdata, ensure_ascii=False)}</script>"""
-    extra = (f'<script type="application/ld+json">{json.dumps(ld, ensure_ascii=False)}</script>\n'
-             f'<script type="application/ld+json">{json.dumps(crumbs_ld, ensure_ascii=False)}</script>\n')
-    page_raw(path, f'{p["title"]} | Diabeticswear', p["meta"], body, active=CATPAGE[p["cat"]] + "/", extra=extra, og=f"assets/img/p/{imgs[0]}.webp")
+    faq_ld = {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [
+        {"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in pfaq]}
+    page_raw(path, p["seo_title"], p["seo_desc"], body, active=CATPAGE[p["cat"]] + "/", extra=ld(ld_prod) + ld(crumbs_ld) + ld(faq_ld),
+             og=f"assets/img/p/{imgs[0]}.webp", og_type="product", preload=imgs[0],
+             product=(variants[0][1] if variants else p["price"],))
 
 
-def page_raw(path, title, desc, body, active=None, extra="", og=None):
+def page_raw(path, title, desc, body, active=None, extra="", og=None, **kw):
     """Zoals page(), maar de body levert zelf het <main>-element."""
     depth = path.count("/")
     R = "../" * depth
-    out = head(R, path, title, desc, extra, og).replace('href="#main"', 'href="#main"') + header(R, active) + \
+    out = head(R, path, title, desc, extra, og, **kw) + header(R, active) + \
         body(R).replace("<main class=\"container\">", '<main class="container" id="main">', 1) + "\n" + footer(R)
     fp = os.path.join(ROOT, path, "index.html")
     os.makedirs(os.path.dirname(fp), exist_ok=True)
@@ -608,7 +749,9 @@ def build_about():
   {reviews_html(C["reviews"][:3])}
 </div></section>
 {newsletter_contact(R)}"""
-    page("over-ons/", "Over ons | Diabeticswear", "Diabeticswear ontwerpt kleding waarmee mensen met diabetes hun insulinepomp veilig, comfortabel en discreet dragen.", body)
+    page("over-ons/", "Over ons | Diabeticswear", "Diabeticswear ontwerpt kleding waarmee mensen met diabetes hun insulinepomp veilig, comfortabel en discreet dragen.", body,
+         extra=ld({"@context": "https://schema.org", "@type": "AboutPage", "url": DOMAIN + "over-ons/", "name": "Over Diabeticswear",
+                   "inLanguage": "nl-NL", "isPartOf": {"@id": SITE_ID}, "about": {"@id": ORG_ID}}))
 
 
 def build_faq():
@@ -648,7 +791,9 @@ def build_contact():
     </form>
   </div>
 </div></section>"""
-    page("contact/", "Contact | Diabeticswear", "Neem contact op met Diabeticswear via info@diabeticswear.com of +31 6 10022060. We reageren binnen 24 uur.", body)
+    page("contact/", "Contact | Diabeticswear", "Neem contact op met Diabeticswear via info@diabeticswear.com of +31 6 10022060. We reageren binnen 24 uur.", body,
+         extra=ld({"@context": "https://schema.org", "@type": "ContactPage", "url": DOMAIN + "contact/", "name": "Contact met Diabeticswear",
+                   "inLanguage": "nl-NL", "isPartOf": {"@id": SITE_ID}, "about": {"@id": ORG_ID}}))
 
 
 def legal_html(text):
@@ -673,30 +818,70 @@ def legal_html(text):
     return title, "".join(out)
 
 
+LEGAL_DESC = {
+    "algemene-voorwaarden": "Algemene voorwaarden van Diabeticswear: bestellen, prijzen, levering, herroepingsrecht, garantie en klachten.",
+    "privacybeleid": "Privacybeleid van Diabeticswear: welke gegevens we verzamelen, waarvoor we ze gebruiken en welke rechten je hebt.",
+    "terugbetaalde-retourneringen": "Retourbeleid van Diabeticswear: binnen 14 dagen retourneren, ruilen en terugbetaling binnen 5 werkdagen.",
+}
+
+
 def build_legal(slug, d):
     t, h = legal_html(d["text"])
 
     def body(R):
         return hero_small("Informatie", d["title"], "", R) + f'<section><div class="container faq"><article class="page-card">{h}</article></div></section>'
-    page(slug + "/", f'{d["title"]} | Diabeticswear', f'{d["title"]} van Diabeticswear.', body)
+    page(slug + "/", f'{d["title"]} | Diabeticswear', LEGAL_DESC.get(slug, f'{d["title"]} van Diabeticswear.'), body)
 
 
 def build_redirect(path, target):
+    """Meta-refresh met 0 seconden: Google behandelt dit als permanente doorverwijzing."""
     depth = path.count("/")
     R = "../" * depth
     fp = os.path.join(ROOT, path, "index.html")
     os.makedirs(os.path.dirname(fp), exist_ok=True)
     open(fp, "w", encoding="utf-8").write(
-        f'<!doctype html><html lang="nl"><head><meta charset="utf-8"><title>Doorverwijzen…</title>'
-        f'<link rel="canonical" href="{DOMAIN}{target}"><meta name="robots" content="noindex">'
+        f'<!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
+        f'<title>Doorverwijzen naar Diabeticswear</title><link rel="canonical" href="{DOMAIN}{target}">'
         f'<meta http-equiv="refresh" content="0; url={R}{target}"></head>'
         f'<body><p><a href="{R}{target}">Ga naar de nieuwe pagina</a></p></body></html>')
+    REDIRECTS.append(path)
+
+
+REDIRECTS = []
+
+
+def old_target(url):
+    """Koppelt een oude anderstalige WooCommerce-URL aan de Nederlandse productpagina."""
+    u = url.lower()
+    is_v = any(k in u for k in ("v-neck", "v-hals", "col-en-v", "col-v-", "v-ausschnitt", "cuello-en-v", "v-ringad", "scollo-a-v"))
+    if any(k in u for k in ("socks", "socken", "chaussettes", "calze", "calcetines", "strumpor")):
+        return "product/compressiesokken-lang/" if any(k in u for k in ("long", "lang", "lunghe", "largos")) else "product/compressiesokken-kort/"
+    if "dexcom-g6" in u:
+        return "product/patch-pleisters-dexcom-g6-40-stuks/"
+    if "dexcom-g7" in u:
+        return "product/patch-pleisters-dexcom-g7-40-stuks/"
+    if "omnipod" in u:
+        return "product/patch-pleisters-omnipod-50-125-stuks/"
+    if "libre" in u:
+        return "product/patch-pleister-freestyle-libre-2/"
+    biker, legging = "biker" in u, any(k in u for k in ("legging", "sportlegging"))
+    if biker and legging:
+        return "product/sportlegging-bikershort-insulinepomp/"
+    if biker:
+        return "product/diabetes-2-pocket-bikershort/"
+    if legging:
+        return "product/diabetes-2-pocket-sportlegging/"
+    if re.search(r"(?<!pocke)t-shirt", u) or ("camiseta" in u and "sin-mangas" not in u):
+        return "product/diabetes-v-hals-t-shirt/" if is_v else "product/diabetes-ronde-hals-t-shirt/"
+    if any(k in u for k in ("hemd", "shirt", "chemise", "canottiera", "skjorta", "sin-mangas")):
+        return "product/diabetes-v-hals-hemd/" if is_v else "product/diabetes-ronde-hals-hemd/"
+    return "winkel/"
 
 
 def build_404():
     body = lambda R: hero_small("404", "Pagina niet gevonden", f'Deze pagina bestaat niet (meer). <a style="color:#fff" href="{R}winkel/">Bekijk alle producten</a>.', R)
     # GitHub Pages serveert 404.html op elk pad: daarom absolute paden.
-    out = head("/", "404.html", "Pagina niet gevonden | Diabeticswear", "Pagina niet gevonden.").replace('data-root="/"', 'data-root="/"') + \
+    out = head("/", "404.html", "Pagina niet gevonden | Diabeticswear", "Pagina niet gevonden.", robots="noindex,follow") + \
         header("/", None) + f'<main id="main">{body("/")}</main>' + footer("/")
     open(os.path.join(ROOT, "404.html"), "w", encoding="utf-8").write(out)
 
@@ -707,11 +892,59 @@ def build_catalog():
         "/* Gegenereerd door tools/build.py, niet handmatig aanpassen. */\nwindow.DW_CATALOG=" + json.dumps(cat, ensure_ascii=False) + ";\n")
 
 
+PAGE_IMGS = {}
+
+
 def build_sitemap():
-    urls = "".join(f"<url><loc>{DOMAIN}{p}</loc></url>" for p in PAGES)
-    open(os.path.join(ROOT, "sitemap.xml"), "w").write(
-        f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>\n')
-    open(os.path.join(ROOT, "robots.txt"), "w").write(f"User-agent: *\nAllow: /\nSitemap: {DOMAIN}sitemap.xml\n")
+    def entry(p):
+        imgs = "".join(f"<image:image><image:loc>{DOMAIN}assets/img/p/{i}.webp</image:loc></image:image>" for i in PAGE_IMGS.get(p, []))
+        prio = "1.0" if p == "" else "0.9" if p.startswith("product/") or p == "winkel/" else "0.8" if p.count("/") == 1 and p.split("/")[0] in [c["slug"] for c in CATS] else "0.5"
+        return f"<url><loc>{DOMAIN}{p}</loc><lastmod>{LASTMOD}</lastmod><priority>{prio}</priority>{imgs}</url>"
+    open(os.path.join(ROOT, "sitemap.xml"), "w", encoding="utf-8").write(
+        '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" '
+        'xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n' + "\n".join(entry(p) for p in PAGES) + "\n</urlset>\n")
+    bots = ["Googlebot", "Bingbot", "Google-Extended", "GPTBot", "OAI-SearchBot", "ChatGPT-User", "ClaudeBot", "Claude-SearchBot",
+            "PerplexityBot", "Applebot", "Applebot-Extended"]
+    robots = "# Diabeticswear: zoekmachines en AI-assistenten zijn welkom.\n" + \
+        "".join(f"User-agent: {b}\nAllow: /\n\n" for b in bots) + "User-agent: *\nAllow: /\n\n" + f"Sitemap: {DOMAIN}sitemap.xml\n"
+    open(os.path.join(ROOT, "robots.txt"), "w", encoding="utf-8").write(robots)
+
+
+def build_llms():
+    """llms.txt: beknopte, feitelijke samenvatting voor AI-assistenten (GEO)."""
+    lines = ["# Diabeticswear", "",
+             "> Nederlandse webshop voor mensen met diabetes die een insulinepomp of CGM-sensor dragen: kleding met twee pompzakjes en een gaatje voor de infuusslang, transparante patch pleisters voor sensoren en pods, compressiesokken en een insuline organizer.", "",
+             f"- Bedrijf: Diabeticswear, {ADDR}. KvK 91840376, btw NL004919866B33.",
+             f"- Contact: {MAIL}, {TEL}. Reactie binnen 24 uur.",
+             "- Verzending: Nederland gratis vanaf € 30 (anders € 4,25), België gratis vanaf € 75 (anders € 5,25). Levering in 2-3 werkdagen.",
+             "- Retour: binnen 14 dagen na ontvangst, retourkosten voor eigen rekening. Terugbetaling binnen 5 werkdagen.",
+             "- Betalen: iDEAL, Bancontact, Klarna of overboeking.",
+             "- T-shirts en hemden vallen groot uit: een maat kleiner bestellen dan normaal.", "",
+             "## Producten", ""]
+    for slug in SHOP_ORDER:
+        p = BY[slug]
+        price = f'vanaf {eur(p["variants"][0][1])}' if p.get("variants") else eur(p["price"])
+        extra = []
+        if p.get("sizes"):
+            extra.append("maten " + "/".join(p["sizes"]))
+        if p.get("colors"):
+            extra.append("kleuren " + "/".join(c[0].lower() for c in p["colors"]))
+        lines.append(f'- [{p["name"]}]({DOMAIN}product/{slug}/): {price}. {p["seo_desc"]}' + (f' ({"; ".join(extra)})' if extra else ""))
+    lines += ["", "## Categorieën", ""] + [f'- [{c["h1"]}]({DOMAIN}{c["slug"]}/): {c["intro"]}' for c in CATS]
+    lines += ["", "## Informatie", "",
+              f"- [Veelgestelde vragen]({DOMAIN}veelgestelde-vragen/)", f"- [Over ons]({DOMAIN}over-ons/)", f"- [Contact]({DOMAIN}contact/)",
+              f"- [Retourbeleid]({DOMAIN}terugbetaalde-retourneringen/)", f"- [Algemene voorwaarden]({DOMAIN}algemene-voorwaarden/)",
+              f"- [Privacybeleid]({DOMAIN}privacybeleid/)", "",
+              "Freestyle Libre, Dexcom en Omnipod zijn merken van hun respectievelijke eigenaren; Diabeticswear is hier niet aan gelieerd.", ""]
+    open(os.path.join(ROOT, "llms.txt"), "w", encoding="utf-8").write("\n".join(lines))
+
+
+def build_manifest():
+    m = {"name": "Diabeticswear", "short_name": "Diabeticswear", "lang": "nl", "start_url": "./", "display": "browser",
+         "background_color": "#F3F2EE", "theme_color": "#2BAA92",
+         "icons": [{"src": "assets/img/icon-192.png", "sizes": "192x192", "type": "image/png"},
+                   {"src": "assets/img/icon-512.png", "sizes": "512x512", "type": "image/png"}]}
+    open(os.path.join(ROOT, "site.webmanifest"), "w", encoding="utf-8").write(json.dumps(m, ensure_ascii=False, indent=1))
 
 
 if __name__ == "__main__":
@@ -727,7 +960,15 @@ if __name__ == "__main__":
     for slug, d in C["legal"].items():
         build_legal(slug, d)
     build_redirect("product/patch-pleister-freestyle-libre2/", "product/patch-pleister-freestyle-libre-2/")
+    build_redirect("product/patch-pleisters-freestyle-libre-2-40-stycken/", "product/patch-pleister-freestyle-libre-2/")
+    build_redirect("product/rundhals-2-taschen-t-shirt/", "product/diabetes-ronde-hals-t-shirt/")
+    for lang in ("en", "de", "fr", "it", "es", "sv"):
+        build_redirect(lang + "/", "")
+    for u in C.get("old_urls", []):
+        build_redirect(u, old_target(u))
     build_404()
     build_catalog()
     build_sitemap()
-    print(f"{len(PAGES)} pagina's gegenereerd")
+    build_llms()
+    build_manifest()
+    print(f"{len(PAGES)} pagina's, {len(REDIRECTS)} doorverwijzingen gegenereerd")

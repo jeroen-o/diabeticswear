@@ -9,6 +9,17 @@ Statische website voor [diabeticswear.com](https://diabeticswear.com): kleding m
 - Winkelmand: sessionStorage met in-memory fallback. **Afrekenen gaat via een bestelaanvraag per e-mail** (mailto naar info@diabeticswear.com); er is nog geen online betaling gekoppeld.
 - Contactformulier: opent het e-mailprogramma van de bezoeker (mailto).
 
+## SEO en GEO
+
+- Per pagina: unieke titel (max. 60 tekens) en omschrijving, canonical naar `https://diabeticswear.com/…`, `robots`, `hreflang`, Open Graph en Twitter-card.
+- Structured data (JSON-LD): Organization/OnlineStore + WebSite (home), Product met prijs, voorraad, verzendkosten NL/BE en retourbeleid, BreadcrumbList, CollectionPage/ItemList, FAQPage, AboutPage, ContactPage.
+- `sitemap.xml` met afbeeldingen, `robots.txt` (zoekmachines en AI-crawlers toegestaan) en `llms.txt` met een feitelijke samenvatting voor AI-assistenten.
+- Oude WooCommerce-URL's in andere talen (`/en/…`, `/de/…` enz.) verwijzen door naar de Nederlandse pagina.
+- Snelheid: preload en `fetchpriority` voor de hoofdafbeelding, `srcset` (600/1200 px), lazy loading onder de vouw, vaste afmetingen tegen layout shift.
+- Lighthouse (lokaal, mobiel en desktop): performance, best practices en SEO 100; toegankelijkheid 96-97 (alleen kleurcontrast wit op teal).
+
+Zolang het domein nog niet naar GitHub Pages wijst, verwijzen de canonicals naar diabeticswear.com; de preview op github.io concurreert daardoor niet met de live shop.
+
 ## Kleuren
 
 | Token | Hex | Gebruik |

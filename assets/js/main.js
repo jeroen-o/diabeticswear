@@ -199,12 +199,14 @@
     var main = $("#gmain img"), thumbs = $$("#thumbs button");
     var show = function (i) {
       state.img = (i + P.imgs.length) % P.imgs.length;
-      main.src = ROOT + "assets/img/p/" + P.imgs[state.img] + ".webp";
+      var b = ROOT + "assets/img/p/" + P.imgs[state.img];
+      main.srcset = b + "-sm.webp 600w, " + b + ".webp 1200w";
+      main.src = b + ".webp";
       thumbs.forEach(function (b, k) { b.setAttribute("aria-current", k === state.img); });
     };
     thumbs.forEach(function (b, k) { b.addEventListener("click", function () { show(k); }); });
     $$(".gnav").forEach(function (b) { b.addEventListener("click", function (e) { e.stopPropagation(); show(state.img + (+b.dataset.d)); }); });
-    $("#gmain").addEventListener("click", function () { zoom(main.src, main.alt); });
+    $("#gmain").addEventListener("click", function () { zoom(ROOT + "assets/img/p/" + P.imgs[state.img] + ".webp", main.alt); });
     var tx; $("#gmain").addEventListener("touchstart", function (e) { tx = e.touches[0].clientX; }, { passive: true });
     $("#gmain").addEventListener("touchend", function (e) { var d = e.changedTouches[0].clientX - tx; if (Math.abs(d) > 40) show(state.img + (d < 0 ? 1 : -1)); });
 

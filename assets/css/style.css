@@ -352,3 +352,8 @@ th{background:var(--mint-soft);font-weight:800}
 .highlights > *{min-width:0;overflow-wrap:anywhere}
 @media(max-width:480px){.highlights{grid-template-columns:1fr 1fr}.hl strong{font-size:.95rem}}
 @media(max-width:400px){.header .container{gap:.6rem}.logo{font-size:1.05rem}.logo-mark{width:30px;height:30px}.logo-mark::after{top:11px;height:7px}.logo-mark::before{inset:6px}.cart-btn{padding:.5rem .8rem}}
+/* Koppen die visueel gelijk blijven maar semantisch kloppen */
+.footer h2.fh{color:#fff;margin:0 0 .8rem;font-size:1rem}
+.usp h2.uh{font-size:1rem;margin:0 0 .2rem}
+.faq-mini{margin-top:2.5rem}
+img{height:auto}
