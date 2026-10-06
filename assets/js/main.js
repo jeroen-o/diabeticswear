@@ -1,156 +1,249 @@
-/* DiabeticsWear — winkelmand, navigatie en productpagina (geen externe afhankelijkheden) */
+/* Diabeticswear — navigatie, winkelmand, bestelaanvraag, shopfilters en productpagina.
+   Geen externe afhankelijkheden. Catalogus komt uit assets/js/catalog.js (gegenereerd door tools/build.py). */
 (function () {
   "use strict";
 
   var ROOT = document.documentElement.getAttribute("data-root") || "";
-  var FREE_SHIPPING = 50;
+  var CAT = window.DW_CATALOG || {};
+  var MAIL = "info@diabeticswear.com";
+  var SHIP = { NL: { free: 30, cost: 4.25, label: "Nederland" }, BE: { free: 75, cost: 5.25, label: "België" } };
   var eur = new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" });
+  var $ = function (s, c) { return (c || document).querySelector(s); };
+  var $$ = function (s, c) { return Array.prototype.slice.call((c || document).querySelectorAll(s)); };
 
-  /* ---------- Legging-illustratie (SVG) ---------- */
-  function leggingSVG(color, view, accent) {
-    color = color || "#1F2726";
-    accent = accent || "#7DC59A";
-    var bg = '<rect width="400" height="400" fill="#2BAA92"/>' +
-      '<ellipse cx="200" cy="378" rx="110" ry="9" fill="#145F52" opacity=".35"/>';
-    var legs = '<path d="M128 98 L272 98 L285 232 L270 362 L222 362 L207 178 L193 178 L178 362 L130 362 L115 232 Z" fill="' + color + '"/>';
-    var band = '<rect x="124" y="58" width="152" height="44" rx="10" fill="' + color + '"/>' +
-      '<rect x="124" y="58" width="152" height="44" rx="10" fill="#fff" opacity=".07"/>' +
-      '<path d="M128 100 H272" stroke="#fff" stroke-opacity=".18" stroke-width="2"/>';
-    var seams = '<path d="M200 102 V178" stroke="#fff" stroke-opacity=".12" stroke-width="2"/>';
-    var pocket = function (x, flip) {
-      var d = flip
-        ? "M" + x + " 128 h-30 l-4 70 h30 z"
-        : "M" + x + " 128 h30 l4 70 h-30 z";
-      return '<path d="' + d + '" fill="#fff" fill-opacity=".1" stroke="' + accent + '" stroke-width="3" stroke-linejoin="round"/>' +
-        '<path d="' + (flip ? "M" + x + " 136 h-31" : "M" + x + " 136 h31") + '" stroke="' + accent + '" stroke-width="5"/>';
-    };
-    var body;
-    if (view === "side") {
-      body = '<path d="M168 58 h70 a8 8 0 0 1 8 8 v34 l10 132 -14 130 h-48 l-6-130 -26-132 v-34 a8 8 0 0 1 8-8z" fill="' + color + '"/>' +
-        '<path d="M176 128 h56 l3 82 h-56 z" fill="#fff" fill-opacity=".1" stroke="' + accent + '" stroke-width="3"/>' +
-        '<path d="M176 138 h57" stroke="' + accent + '" stroke-width="5"/>' +
-        '<rect x="188" y="150" width="34" height="48" rx="8" fill="#F3F2EE" opacity=".9"/>' +
-        '<circle cx="205" cy="166" r="7" fill="' + accent + '"/>';
-    } else if (view === "pocket") {
-      body = '<rect x="70" y="70" width="260" height="260" rx="22" fill="' + color + '"/>' +
-        '<path d="M110 120 h180 l8 170 h-196 z" fill="#fff" fill-opacity=".08" stroke="' + accent + '" stroke-width="5" stroke-linejoin="round"/>' +
-        '<path d="M110 142 h182" stroke="' + accent + '" stroke-width="10"/>' +
-        '<rect x="150" y="168" width="100" height="98" rx="18" fill="#F3F2EE"/>' +
-        '<rect x="170" y="184" width="60" height="40" rx="8" fill="#A3C8E6"/>' +
-        '<circle cx="200" cy="246" r="8" fill="' + accent + '"/>';
-    } else if (view === "back") {
-      body = legs + band + seams +
-        '<path d="M140 110 q60 30 120 0" stroke="#fff" stroke-opacity=".14" stroke-width="2" fill="none"/>' +
-        '<rect x="178" y="68" width="44" height="22" rx="6" fill="none" stroke="' + accent + '" stroke-width="3"/>';
-    } else {
-      body = legs + band + seams + pocket(118, false) + pocket(282, true) +
-        '<path d="M150 80 q50 10 100 0" stroke="' + accent + '" stroke-width="3" fill="none" opacity=".8"/>';
-    }
-    return '<svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Illustratie diabetes 2-pocket sportlegging">' + bg + body + "</svg>";
+  /* ---------- Opslag (sessionStorage met geheugen-fallback) ---------- */
+  var mem = {};
+  function get(k, d) { try { var v = sessionStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return k in mem ? mem[k] : d; } }
+  function set(k, v) { mem[k] = v; try { sessionStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* geheugen */ } }
+
+  /* ---------- Melding bovenaan ---------- */
+  var bar = $(".notice-bar");
+  if (bar) {
+    if (get("dw-notice", false)) bar.hidden = true;
+    $(".notice-bar button").addEventListener("click", function () { bar.hidden = true; set("dw-notice", true); });
   }
-  window.DW = { leggingSVG: leggingSVG };
 
-  /* ---------- Productcatalogus (prijzen = placeholder, aanpassen) ---------- */
-  var PRODUCTS = {
-    legging: { name: "Diabetes 2-pocket sportlegging", price: 49.95, svg: true },
-    "patch-rond": { name: "Overpatch rond (10 st.)", price: 12.95, img: "assets/img/patch-rond-libre.webp" },
-    "patch-pod": { name: "Overpatch pomp/pod (10 st.)", price: 14.95, img: "assets/img/patch-omnipod.webp" },
-    "patch-ovaal": { name: "Overpatch ovaal (10 st.)", price: 13.95, img: "assets/img/patch-ovaal.webp" },
-    "patch-ei": { name: "Overpatch ei-vorm (10 st.)", price: 13.95, img: "assets/img/patch-ei.webp" }
-  };
-
-  /* ---------- Winkelmand (sessionStorage, valt terug op geheugen) ---------- */
-  var memCart = [];
-  function load() {
-    try { var s = sessionStorage.getItem("dw-cart"); return s ? JSON.parse(s) : memCart; }
-    catch (e) { return memCart; }
+  /* ---------- Mobiel menu ---------- */
+  var nav = $(".nav"), navBg = $(".nav-bg"), menuBtn = $(".menu-btn");
+  function navToggle(open) {
+    nav.classList.toggle("open", open); navBg.classList.toggle("open", open);
+    menuBtn.setAttribute("aria-expanded", open);
   }
-  function save(c) {
-    memCart = c;
-    try { sessionStorage.setItem("dw-cart", JSON.stringify(c)); } catch (e) { /* in-memory */ }
+  if (menuBtn) {
+    menuBtn.addEventListener("click", function () { navToggle(true); });
+    navBg.addEventListener("click", function () { navToggle(false); });
+    $(".close-nav").addEventListener("click", function () { navToggle(false); });
   }
-  var cart = load();
 
-  function addToCart(id, opts, qty, color) {
-    var key = id + "|" + (opts || "");
+  /* ---------- Toast ---------- */
+  var toastEl;
+  function toast(t) {
+    if (!toastEl) { toastEl = document.createElement("div"); toastEl.className = "toast"; toastEl.setAttribute("role", "status"); document.body.appendChild(toastEl); }
+    toastEl.textContent = t; toastEl.classList.add("show");
+    clearTimeout(toastEl._t); toastEl._t = setTimeout(function () { toastEl.classList.remove("show"); }, 2600);
+  }
+
+  /* ---------- Winkelmand ---------- */
+  var cart = get("dw-cart", []).filter(function (l) { return CAT[l.id]; });
+  var country = get("dw-country", "NL");
+
+  function totals() {
+    var sub = cart.reduce(function (n, l) { return n + l.price * l.qty; }, 0);
+    var s = SHIP[country];
+    var ship = sub === 0 || sub >= s.free ? 0 : s.cost;
+    return { sub: sub, ship: ship, total: sub + ship, rest: Math.max(0, s.free - sub), free: s.free };
+  }
+
+  function add(id, opts, qty, price) {
+    var key = id + "|" + opts;
     var line = cart.filter(function (l) { return l.key === key; })[0];
-    if (line) line.qty += qty; else cart.push({ key: key, id: id, opts: opts || "", qty: qty, color: color });
-    save(cart); render(); openDrawer();
-  }
-  window.DW.addToCart = addToCart;
-
-  function thumbFor(line) {
-    var p = PRODUCTS[line.id];
-    if (p.svg) return leggingSVG(line.color, "front");
-    return '<img src="' + ROOT + p.img + '" alt="">';
+    if (line) line.qty = Math.min(20, line.qty + qty);
+    else cart.push({ key: key, id: id, opts: opts, qty: qty, price: price });
+    set("dw-cart", cart); render(); openDrawer();
   }
 
   function render() {
     var count = cart.reduce(function (n, l) { return n + l.qty; }, 0);
-    var total = cart.reduce(function (n, l) { return n + l.qty * PRODUCTS[l.id].price; }, 0);
-    document.querySelectorAll(".cart-count").forEach(function (el) { el.textContent = count; });
-    var list = document.getElementById("drawer-items");
-    if (!list) return;
+    $$(".cart-count").forEach(function (e) { e.textContent = count; });
+    var list = $("#d-items"); if (!list) return;
     if (!cart.length) {
-      list.innerHTML = '<p class="empty">Je winkelmand is nog leeg.</p>';
+      list.innerHTML = '<div class="empty"><p>Je winkelmand is nog leeg.</p><a class="btn btn-primary" href="' + ROOT + 'winkel/">Bekijk alle producten</a></div>';
     } else {
       list.innerHTML = cart.map(function (l, i) {
-        var p = PRODUCTS[l.id];
-        return '<div class="drawer-item"><div class="thumb">' + thumbFor(l) + '</div><div><strong>' + p.name + '</strong>' +
-          (l.opts ? '<small>' + l.opts + '</small>' : "") + '<small>' + l.qty + ' × ' + eur.format(p.price) + '</small>' +
-          '<button class="rm" data-rm="' + i + '">Verwijderen</button></div><strong>' + eur.format(p.price * l.qty) + '</strong></div>';
+        var p = CAT[l.id];
+        return '<div class="d-item"><img src="' + ROOT + p.img + '" alt="" width="64" height="64">' +
+          '<div><strong>' + p.name + '</strong>' + (l.opts ? '<small>' + l.opts + '</small>' : "") +
+          '<div class="lineqty"><button data-q="' + i + '" data-d="-1" aria-label="Minder">−</button><span>' + l.qty + '</span>' +
+          '<button data-q="' + i + '" data-d="1" aria-label="Meer">+</button><button class="rm" data-rm="' + i + '">Verwijderen</button></div></div>' +
+          '<strong>' + eur.format(l.price * l.qty) + '</strong></div>';
       }).join("");
     }
-    document.getElementById("drawer-total").textContent = eur.format(total);
-    var rest = Math.max(0, FREE_SHIPPING - total);
-    document.getElementById("ship-msg").textContent = rest > 0
-      ? "Nog " + eur.format(rest) + " tot gratis verzending"
-      : "Je bestelling wordt gratis verzonden";
-    document.getElementById("ship-fill").style.width = Math.min(100, total / FREE_SHIPPING * 100) + "%";
+    var t = totals();
+    $("#d-sub").textContent = eur.format(t.sub);
+    $("#d-ship").textContent = t.ship ? eur.format(t.ship) : "Gratis";
+    $("#d-total").textContent = eur.format(t.total);
+    $("#d-country").value = country;
+    $("#d-shipmsg").textContent = t.sub === 0 ? "Gratis verzending naar " + SHIP[country].label + " vanaf " + eur.format(t.free) :
+      t.rest > 0 ? "Nog " + eur.format(t.rest) + " tot gratis verzending naar " + SHIP[country].label : "Je bestelling wordt gratis verzonden";
+    $("#d-shipfill").style.width = Math.min(100, t.sub / t.free * 100) + "%";
+    $("#d-checkout").disabled = !cart.length;
   }
 
-  var drawer = document.getElementById("drawer");
-  var drawerBg = document.getElementById("drawer-bg");
-  function openDrawer() { if (drawer) { drawer.classList.add("open"); drawerBg.classList.add("open"); } }
-  function closeDrawer() { if (drawer) { drawer.classList.remove("open"); drawerBg.classList.remove("open"); } }
+  var drawer = $("#drawer"), drawerBg = $("#drawer-bg"), lastFocus;
+  function openDrawer() { lastFocus = document.activeElement; drawer.classList.add("open"); drawerBg.classList.add("open"); $(".x", drawer).focus(); }
+  function closeDrawer() { drawer.classList.remove("open"); drawerBg.classList.remove("open"); if (lastFocus) lastFocus.focus(); }
 
   document.addEventListener("click", function (e) {
     var t = e.target;
-    if (t.closest(".cart-btn")) { openDrawer(); }
-    else if (t.closest("[data-close-drawer]") || t === drawerBg) { closeDrawer(); }
-    else if (t.dataset && t.dataset.rm !== undefined) { cart.splice(+t.dataset.rm, 1); save(cart); render(); }
-    else if (t.closest("[data-quick-add]")) {
-      e.preventDefault();
-      addToCart(t.closest("[data-quick-add]").dataset.quickAdd, "", 1);
+    if (t.closest(".cart-btn")) { openDrawer(); return; }
+    if (t.closest("[data-close-drawer]") || t === drawerBg) { closeDrawer(); return; }
+    if (t.dataset.rm !== undefined) { cart.splice(+t.dataset.rm, 1); set("dw-cart", cart); render(); return; }
+    if (t.dataset.q !== undefined) {
+      var l = cart[+t.dataset.q]; l.qty += +t.dataset.d;
+      if (l.qty < 1) cart.splice(+t.dataset.q, 1);
+      set("dw-cart", cart); render(); return;
     }
+    var close = t.closest("[data-close]");
+    if (close) { close.closest("dialog").close(); return; }
+    if (t.tagName === "DIALOG") t.close();
   });
-  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeDrawer(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") { closeDrawer(); if (nav) navToggle(false); } });
+  var dc = $("#d-country");
+  if (dc) dc.addEventListener("change", function () { country = dc.value; set("dw-country", country); render(); });
 
-  var checkout = document.getElementById("checkout");
-  if (checkout) checkout.addEventListener("click", function () {
-    alert("Demo-winkel: koppel hier je betaalprovider (bijv. Mollie of WooCommerce-checkout).");
-  });
-
-  /* ---------- Mobiel menu ---------- */
-  var menuBtn = document.querySelector(".menu-btn");
-  var nav = document.querySelector(".nav");
-  if (menuBtn) menuBtn.addEventListener("click", function () {
-    var open = nav.classList.toggle("open");
-    menuBtn.setAttribute("aria-expanded", open);
-  });
-
-  /* ---------- Legging-illustraties in kaarten ---------- */
-  document.querySelectorAll("[data-legging]").forEach(function (el) {
-    el.innerHTML = leggingSVG(el.dataset.color, el.dataset.legging);
-  });
-
-  /* ---------- Nieuwsbrief ---------- */
-  document.querySelectorAll("form[data-newsletter]").forEach(function (f) {
-    f.addEventListener("submit", function (e) {
-      e.preventDefault();
-      f.innerHTML = "<p><strong>Bedankt!</strong> Je staat op de lijst.</p>";
+  /* ---------- Bestelaanvraag (via e-mail; nog geen online betaling) ---------- */
+  var coDlg = $("#checkout-dlg");
+  if (coDlg) {
+    $("#d-checkout").addEventListener("click", function () {
+      if (!cart.length) return;
+      $("#co-country").value = country;
+      closeDrawer(); coDlg.showModal();
     });
+    $("#co-country").addEventListener("change", function () { country = this.value; set("dw-country", country); render(); });
+    $("#co-form").addEventListener("submit", function (e) {
+      e.preventDefault();
+      var f = e.target, v = function (n) { return f.elements[n].value.trim(); };
+      var t = totals();
+      var lines = cart.map(function (l) { return "- " + l.qty + " x " + CAT[l.id].name + (l.opts ? " (" + l.opts + ")" : "") + " = " + eur.format(l.price * l.qty); });
+      var body = ["Bestelaanvraag via diabeticswear.com", "", "PRODUCTEN"].concat(lines).concat([
+        "", "Subtotaal: " + eur.format(t.sub), "Verzendkosten (" + SHIP[country].label + "): " + (t.ship ? eur.format(t.ship) : "gratis"), "Totaal: " + eur.format(t.total),
+        "", "GEGEVENS", "Naam: " + v("naam"), "E-mail: " + v("email"), "Telefoon: " + v("tel"),
+        "Adres: " + v("adres"), "Postcode en plaats: " + v("postcode") + " " + v("plaats"), "Land: " + SHIP[country].label,
+        "Voorkeur betaling: " + v("betaling"), "", "Opmerking: " + (v("opmerking") || "-")]).join("\n");
+      window.location.href = "mailto:" + MAIL + "?subject=" + encodeURIComponent("Bestelaanvraag " + v("naam")) + "&body=" + encodeURIComponent(body);
+      $("#co-done").hidden = false; f.hidden = true;
+    });
+    $("#co-clear").addEventListener("click", function () { cart = []; set("dw-cart", cart); render(); coDlg.close(); toast("Bedankt! We nemen binnen 24 uur contact op."); });
+  }
+
+  /* ---------- Contactformulier (mailto) ---------- */
+  var cf = $("#contact-form");
+  if (cf) cf.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var v = function (n) { return cf.elements[n].value.trim(); };
+    var body = v("bericht") + "\n\n--\n" + v("naam") + "\n" + v("email") + (v("tel") ? "\n" + v("tel") : "");
+    window.location.href = "mailto:" + MAIL + "?subject=" + encodeURIComponent("Vraag via de website: " + v("onderwerp")) + "&body=" + encodeURIComponent(body);
+    $("#contact-done").hidden = false;
   });
+
+  /* ---------- Shopfilters ---------- */
+  var shop = $("#shop-grid");
+  if (shop) {
+    var chips = $$(".filters .chip"), sort = $("#sort");
+    var cards = $$(".pcard", shop);
+    var apply = function (cat) {
+      chips.forEach(function (c) { c.setAttribute("aria-pressed", c.dataset.cat === cat); });
+      cards.forEach(function (c) { c.hidden = cat !== "alle" && c.dataset.cats.split(" ").indexOf(cat) < 0; });
+      $("#shop-count").textContent = cards.filter(function (c) { return !c.hidden; }).length + " producten";
+    };
+    chips.forEach(function (c) { c.addEventListener("click", function () { apply(c.dataset.cat); history.replaceState(null, "", c.dataset.cat === "alle" ? location.pathname : "#" + c.dataset.cat); }); });
+    sort.addEventListener("change", function () {
+      var s = sort.value;
+      cards.sort(function (a, b) {
+        if (s === "laag") return a.dataset.price - b.dataset.price;
+        if (s === "hoog") return b.dataset.price - a.dataset.price;
+        return a.dataset.order - b.dataset.order;
+      }).forEach(function (c) { shop.appendChild(c); });
+    });
+    var h = location.hash.slice(1);
+    apply(chips.some(function (c) { return c.dataset.cat === h; }) ? h : "alle");
+  }
+
+  /* ---------- Lightbox ---------- */
+  var lb = $("#lightbox");
+  function zoom(src, alt) { if (!lb) return; $("img", lb).src = src; $("img", lb).alt = alt || ""; lb.showModal(); }
+  $$("[data-zoom]").forEach(function (el) { el.addEventListener("click", function () { zoom(el.dataset.zoom, el.getAttribute("aria-label")); }); });
+
+  /* ---------- Productpagina ---------- */
+  var pd = $("#pdata");
+  if (pd) {
+    var P = JSON.parse(pd.textContent);
+    var state = { img: 0, size: P.sizes.length === 1 ? P.sizes[0] : "", color: P.colors.length === 1 ? P.colors[0] : "", variant: P.variants.length ? 0 : -1 };
+    var main = $("#gmain img"), thumbs = $$("#thumbs button");
+    var show = function (i) {
+      state.img = (i + P.imgs.length) % P.imgs.length;
+      main.src = ROOT + "assets/img/p/" + P.imgs[state.img] + ".webp";
+      thumbs.forEach(function (b, k) { b.setAttribute("aria-current", k === state.img); });
+    };
+    thumbs.forEach(function (b, k) { b.addEventListener("click", function () { show(k); }); });
+    $$(".gnav").forEach(function (b) { b.addEventListener("click", function (e) { e.stopPropagation(); show(state.img + (+b.dataset.d)); }); });
+    $("#gmain").addEventListener("click", function () { zoom(main.src, main.alt); });
+    var tx; $("#gmain").addEventListener("touchstart", function (e) { tx = e.touches[0].clientX; }, { passive: true });
+    $("#gmain").addEventListener("touchend", function (e) { var d = e.changedTouches[0].clientX - tx; if (Math.abs(d) > 40) show(state.img + (d < 0 ? 1 : -1)); });
+
+    var price = function () { return state.variant >= 0 ? P.variants[state.variant][1] : P.price; };
+    var sync = function () {
+      $$("[data-size]").forEach(function (b) {
+        var need = P.rules[b.dataset.size];
+        b.disabled = !!(need && state.color && state.color !== need);
+        b.setAttribute("aria-pressed", b.dataset.size === state.size);
+        b.title = b.disabled ? "Alleen verkrijgbaar in " + need.toLowerCase() : "";
+      });
+      $$("[data-color]").forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.color === state.color); });
+      $$("[data-variant]").forEach(function (b) { b.setAttribute("aria-pressed", +b.dataset.variant === state.variant); });
+      if ($("#sel-size")) $("#sel-size").textContent = state.size || "kies een maat";
+      if ($("#sel-color")) $("#sel-color").textContent = state.color || "kies een kleur";
+      $$(".js-price").forEach(function (e) { e.textContent = eur.format(price()); });
+    };
+    $$("[data-size]").forEach(function (b) { b.addEventListener("click", function () { state.size = b.dataset.size; msg(""); sync(); }); });
+    $$("[data-color]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        state.color = b.dataset.color;
+        var need = P.rules[state.size]; if (need && need !== state.color) state.size = "";
+        msg(""); sync();
+      });
+    });
+    $$("[data-variant]").forEach(function (b) { b.addEventListener("click", function () { state.variant = +b.dataset.variant; sync(); }); });
+
+    var qty = $("#qty");
+    var setQ = function (n) { qty.value = Math.max(1, Math.min(20, parseInt(n, 10) || 1)); };
+    $("#qmin").addEventListener("click", function () { setQ(+qty.value - 1); });
+    $("#qplus").addEventListener("click", function () { setQ(+qty.value + 1); });
+    qty.addEventListener("change", function () { setQ(qty.value); });
+
+    var m = $("#msg");
+    function msg(t) { m.textContent = t; m.classList.toggle("err", !!t); }
+    function buy() {
+      if (P.colors.length > 1 && !state.color) { msg("Kies eerst een kleur."); return; }
+      if (P.sizes.length > 1 && !state.size) { msg("Kies eerst een maat."); return; }
+      var o = [];
+      if (P.colors.length > 1) o.push((P.colorLabel || "Kleur") + ": " + state.color);
+      if (P.sizes.length > 1) o.push("Maat " + state.size);
+      if (state.variant >= 0) o.push(P.variants[state.variant][0]);
+      add(P.slug, o.join(" · "), +qty.value, price());
+      toast("Toegevoegd aan je winkelmand");
+    }
+    $("#add").addEventListener("click", buy);
+    var sb = $("#sticky-buy");
+    $("#sticky-add").addEventListener("click", function () {
+      if ((P.sizes.length > 1 && !state.size) || (P.colors.length > 1 && !state.color)) { $("#add").scrollIntoView({ behavior: "smooth", block: "center" }); buy(); return; }
+      buy();
+    });
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver(function (en) { sb.classList.toggle("show", !en[0].isIntersecting && en[0].boundingClientRect.top < 0); }).observe($("#add"));
+    }
+    sync();
+  }
 
   render();
 })();
