@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://diabeticswear.com/sitemap.xml

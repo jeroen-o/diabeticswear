@@ -26,13 +26,13 @@
   /* ---------- Mobiel menu ---------- */
   var nav = $(".nav"), navBg = $(".nav-bg"), menuBtn = $(".menu-btn");
   function navToggle(open) {
-    nav.classList.toggle("open", open); navBg.classList.toggle("open", open);
+    nav.classList.toggle("open", open); if (navBg) navBg.classList.toggle("open", open);
     menuBtn.setAttribute("aria-expanded", open);
   }
   if (menuBtn) {
-    menuBtn.addEventListener("click", function () { navToggle(true); });
-    navBg.addEventListener("click", function () { navToggle(false); });
-    $(".close-nav").addEventListener("click", function () { navToggle(false); });
+    menuBtn.addEventListener("click", function () { navToggle(!nav.classList.contains("open")); });
+    if (navBg) navBg.addEventListener("click", function () { navToggle(false); });
+    if ($(".close-nav")) $(".close-nav").addEventListener("click", function () { navToggle(false); });
   }
 
   /* ---------- Toast ---------- */
@@ -71,7 +71,7 @@
     } else {
       list.innerHTML = cart.map(function (l, i) {
         var p = CAT[l.id];
-        return '<div class="d-item"><img src="' + ROOT + p.img + '" alt="" width="64" height="64">' +
+        return '<div class="drawer-item"><div class="thumb"><img src="' + ROOT + p.img + '" alt="" width="64" height="64"></div>' +
           '<div><strong>' + p.name + '</strong>' + (l.opts ? '<small>' + l.opts + '</small>' : "") +
           '<div class="lineqty"><button data-q="' + i + '" data-d="-1" aria-label="Minder">−</button><span>' + l.qty + '</span>' +
           '<button data-q="' + i + '" data-d="1" aria-label="Meer">+</button><button class="rm" data-rm="' + i + '">Verwijderen</button></div></div>' +
@@ -90,7 +90,7 @@
   }
 
   var drawer = $("#drawer"), drawerBg = $("#drawer-bg"), lastFocus;
-  function openDrawer() { lastFocus = document.activeElement; drawer.classList.add("open"); drawerBg.classList.add("open"); $(".x", drawer).focus(); }
+  function openDrawer() { lastFocus = document.activeElement; drawer.classList.add("open"); drawerBg.classList.add("open"); $(".close", drawer).focus(); }
   function closeDrawer() { drawer.classList.remove("open"); drawerBg.classList.remove("open"); if (lastFocus) lastFocus.focus(); }
 
   document.addEventListener("click", function (e) {
@@ -150,7 +150,7 @@
   var shop = $("#shop-grid");
   if (shop) {
     var chips = $$(".filters .chip"), sort = $("#sort");
-    var cards = $$(".pcard", shop);
+    var cards = $$(".card", shop);
     var apply = function (cat) {
       chips.forEach(function (c) { c.setAttribute("aria-pressed", c.dataset.cat === cat); });
       cards.forEach(function (c) { c.hidden = cat !== "alle" && c.dataset.cats.split(" ").indexOf(cat) < 0; });
@@ -169,10 +169,27 @@
     apply(chips.some(function (c) { return c.dataset.cat === h; }) ? h : "alle");
   }
 
+  /* ---------- Tabs ---------- */
+  var tabs = $$("[role=tab]");
+  tabs.forEach(function (t) {
+    t.addEventListener("click", function () {
+      tabs.forEach(function (o) {
+        o.setAttribute("aria-selected", o === t);
+        document.getElementById(o.getAttribute("aria-controls")).hidden = o !== t;
+      });
+    });
+  });
+  $$("[data-tab]").forEach(function (a) {
+    a.addEventListener("click", function (ev) { ev.preventDefault(); var t = document.getElementById(a.dataset.tab); t.click(); t.scrollIntoView({ behavior: "smooth", block: "start" }); });
+  });
+
   /* ---------- Lightbox ---------- */
   var lb = $("#lightbox");
   function zoom(src, alt) { if (!lb) return; $("img", lb).src = src; $("img", lb).alt = alt || ""; lb.showModal(); }
-  $$("[data-zoom]").forEach(function (el) { el.addEventListener("click", function () { zoom(el.dataset.zoom, el.getAttribute("aria-label")); }); });
+  $$("[data-zoom]").forEach(function (el) {
+    el.addEventListener("click", function () { zoom(el.dataset.zoom, el.getAttribute("aria-label")); });
+    el.addEventListener("keydown", function (ev) { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); zoom(el.dataset.zoom, el.getAttribute("aria-label")); } });
+  });
 
   /* ---------- Productpagina ---------- */
   var pd = $("#pdata");
