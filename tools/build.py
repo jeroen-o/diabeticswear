@@ -15,6 +15,10 @@ C = json.load(open(os.path.join(ROOT, "tools", "content.json"), encoding="utf-8"
 PRODUCTS = C["products"]
 BY = {p["slug"]: p for p in PRODUCTS}
 CATS = C["cats"]
+KB = json.load(open(os.path.join(ROOT, "tools", "kennisbank.json"), encoding="utf-8"))
+SIZE_TABLE = [("Lengte (zijde 1)", [70, 73, 75, 77, 80, 81]), ("Breedte (zijde 2)", [50, 51, 52, 53, 55, 56]),
+              ("Zakje breedte (zijde 3)", [12] * 6), ("Zakje hoogte (zijde 4)", [14] * 6)]
+SIZE_COLS = ["XS", "S", "M", "L", "XL", "XXL"]
 MAIL = "info@diabeticswear.com"
 TEL, TEL_LINK = "+31 6 10022060", "tel:+31610022060"
 ADDR = "De Wel 14-16, 3871 MV Hoevelaken"
@@ -112,6 +116,7 @@ NAV = [
     ("Patch pleisters", "productpagina-patch-pleisters/", None),
     ("Accessoires", "producten-kleding-accessoires-overig/", None),
     ("Alle producten", "winkel/", None),
+    ("Kennisbank", "kennisbank/", None),
     ("Over ons", "over-ons/", None),
     ("Contact", "contact/", None),
 ]
@@ -166,6 +171,8 @@ def footer(R):
       </ul></div>
       <div><h2 class="fh">Service</h2><ul>
         <li><a href="{R}veelgestelde-vragen/">Veelgestelde vragen</a></li>
+        <li><a href="{R}kennisbank/">Kennisbank</a></li>
+        <li><a href="{R}kennisbank/maatgids-diabetes-kleding/">Maatgids</a></li>
         <li><a href="{R}terugbetaalde-retourneringen/">Retourbeleid</a></li>
         <li><a href="{R}over-ons/">Over ons</a></li>
         <li><a href="{R}contact/">Contact</a></li>
@@ -274,7 +281,7 @@ def collection_ld(path, name, desc, ps, trail):
 
 
 def hero_small(eyebrow, title, text, R):
-    return (f'<section class="hero small"><div class="container"><div><span class="eyebrow">{e(eyebrow)}</span>'
+    return (f'<section class="hero hero-sub"><div class="container"><div><span class="eyebrow">{e(eyebrow)}</span>'
             f'<h1>{e(title)}</h1>{f"<p class=lead>{text}</p>" if text else ""}</div></div></section>')
 
 
@@ -457,6 +464,13 @@ def build_home():
   <div class="container">
     <div class="section-head"><div><span class="eyebrow">Recensies</span><h2>Wat klanten zeggen</h2></div><p>Echte ervaringen, ook de verbeterpunten.</p></div>
     {reviews_html(reviews)}
+  </div>
+</section>
+
+<section class="bg-white" id="kennisbank">
+  <div class="container">
+    <div class="section-head"><div><span class="eyebrow">Kennisbank</span><h2>Tips voor elke dag</h2></div><a class="btn btn-primary" href="{R}kennisbank/">Alle artikelen</a></div>
+    {kb_grid([a for a in KB["articles"] if a["slug"] in ("insulinepomp-dragen-tijdens-sporten", "sensor-laat-los-tips", "slapen-met-een-insulinepomp", "maatgids-diabetes-kleding")], R)}
   </div>
 </section>
 
@@ -656,7 +670,7 @@ def build_product(p):
         if specs:
             tabs.append(("specs", "Specificaties", f'<div class="table-wrap"><table>{specs}</table></div>'))
         if p.get("sizechart"):
-            tabs.append(("size", "Maattabel", f'<p>De maten zijn in centimeters. De t-shirts en hemden vallen groot uit: bestel bij twijfel een maat kleiner.</p>'
+            tabs.append(("size", "Maattabel", f'<p>De maten zijn plat gemeten in centimeters. De t-shirts en hemden vallen groot uit: bestel bij twijfel een maat kleiner. <a href="{R}kennisbank/maatgids-diabetes-kleding/">Bekijk de maatgids</a>.</p>' + size_table_html() +
                          f'<div class="sizechart" data-zoom="{img(imgs[p["sizechart"] - 1], R)}" role="button" tabindex="0" aria-label="Maattabel vergroten">'
                          f'<img src="{img(imgs[p["sizechart"] - 1], R)}" alt="Maattabel {alt}" loading="lazy" width="1200" height="1200"></div>'))
         tabs.append(("ship", "Verzenden &amp; retour",
@@ -725,6 +739,94 @@ def page_raw(path, title, desc, body, active=None, extra="", og=None, **kw):
     os.makedirs(os.path.dirname(fp), exist_ok=True)
     open(fp, "w", encoding="utf-8").write(out)
     PAGES.append(path)
+
+
+def size_table_html():
+    head_ = "".join(f"<th scope='col'>{c}</th>" for c in SIZE_COLS)
+    rows = "".join(f"<tr><th scope='row'>{e(n)}</th>" + "".join(f"<td>{v}</td>" for v in vals) + "</tr>" for n, vals in SIZE_TABLE)
+    return f'<div class="table-wrap"><table><caption class="sr-only">Maattabel t-shirts en hemden in centimeters</caption><thead><tr><th scope="col">Maat (cm)</th>{head_}</tr></thead><tbody>{rows}</tbody></table></div>'
+
+
+def md_links(t, R):
+    """[tekst](pad) -> interne link; e-mailadres -> mailto."""
+    t = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", lambda m: f'<a href="{R}{m.group(2)}">{m.group(1)}</a>', t)
+    return t
+
+
+def kb_card(a, R):
+    return (f'<a class="card" href="{R}kennisbank/{a["slug"]}/"><div class="card-media"><img src="{img(a["img"], R, True)}" {srcset(a["img"], R)} '
+            f'sizes="(max-width:520px) 100vw, (max-width:1000px) 50vw, 280px" alt="" loading="lazy" width="600" height="600"></div>'
+            f'<div class="card-body"><small>Kennisbank</small><h3>{e(a["title"])}</h3><p class="small" style="margin:.3rem 0 0">{e(a["desc"])}</p></div></a>')
+
+
+def kb_grid(arts, R):
+    return '<div class="grid">' + "".join(kb_card(a, R) for a in arts) + "</div>"
+
+
+def build_kb_index():
+    arts = KB["articles"]
+    desc = "Praktische tips over leven met een insulinepomp of CGM-sensor: sporten, slapen, zwemmen, op reis, sensor die loslaat en de juiste maat kleding."
+
+    def body(R):
+        return crumbs(R, [("Kennisbank", None)]) + hero_small("Kennisbank", "Tips voor leven met je insulinepomp en sensor", e(desc), R) + \
+            f'<section><div class="container"><h2 class="sr-only">Artikelen</h2>{kb_grid(arts, R)}</div></section>' + newsletter_contact(R)
+    items = [{"@type": "ListItem", "position": i + 1, "url": f'{DOMAIN}kennisbank/{a["slug"]}/', "name": a["title"]} for i, a in enumerate(arts)]
+    extra = ld({"@context": "https://schema.org", "@type": "CollectionPage", "url": DOMAIN + "kennisbank/", "name": "Kennisbank", "description": desc,
+                "inLanguage": "nl-NL", "isPartOf": {"@id": SITE_ID}, "mainEntity": {"@type": "ItemList", "itemListElement": items}}) + \
+        ld({"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
+            {"@type": "ListItem", "position": 1, "name": "Home", "item": DOMAIN},
+            {"@type": "ListItem", "position": 2, "name": "Kennisbank", "item": DOMAIN + "kennisbank/"}]})
+    page("kennisbank/", "Kennisbank: tips voor insulinepomp en sensor | Diabeticswear", desc, body, extra=extra)
+
+
+def build_kb_article(a):
+    path = f'kennisbank/{a["slug"]}/'
+    others = [x for x in KB["articles"] if x["slug"] != a["slug"]][:3]
+
+    def body(R):
+        out = []
+        for kind, val in a["blocks"]:
+            if kind == "h2":
+                out.append(f"<h2>{e(val)}</h2>")
+            elif kind == "p":
+                out.append(f"<p>{md_links(e(val), R)}</p>")
+            elif kind == "ul":
+                out.append("<ul class='checklist'>" + "".join(f"<li>{md_links(e(x), R)}</li>" for x in val) + "</ul>")
+            elif kind == "sizetable":
+                out.append(size_table_html())
+        rel = [BY[s] for s in a["related"]]
+        return crumbs(R, [("Kennisbank", "kennisbank/"), (a["title"], None)]) + hero_small("Kennisbank", a["title"], e(a["intro"]), R) + f"""
+<section class="bg-white"><div class="container faq">
+  <article class="prose">
+    <p class="small">Laatst bijgewerkt: <time datetime="{LASTMOD}">6 oktober 2026</time> · Door het team van Diabeticswear</p>
+    <img src="{img(a["img"], R)}" {srcset(a["img"], R)} sizes="(max-width:860px) 100vw, 760px" alt="" width="1200" height="1200" style="border-radius:var(--radius);aspect-ratio:16/9;object-fit:cover;width:100%;background:var(--teal);margin:0 0 1.5rem">
+    {"".join(out)}
+    <div class="advice" role="note"><strong>Let op:</strong> {e(KB["disclaimer"])}</div>
+  </article>
+  <h2 style="margin-top:2.5rem">Veelgestelde vragen</h2>
+  {faq_html(a["faq"])}
+</div></section>
+<section><div class="container">
+  <div class="section-head"><div><span class="eyebrow">Handig bij dit onderwerp</span><h2>Producten</h2></div></div>
+  {grid(rel, R)}
+</div></section>
+<section class="bg-white"><div class="container">
+  <div class="section-head"><div><span class="eyebrow">Kennisbank</span><h2>Lees ook</h2></div><a class="btn btn-primary" href="{R}kennisbank/">Alle artikelen</a></div>
+  {kb_grid(others, R)}
+</div></section>"""
+    art = {"@context": "https://schema.org", "@type": "Article", "@id": DOMAIN + path + "#artikel", "headline": a["title"], "description": a["desc"],
+           "image": [f'{DOMAIN}assets/img/p/{a["img"]}.webp'], "datePublished": LASTMOD, "dateModified": LASTMOD, "inLanguage": "nl-NL",
+           "author": {"@type": "Organization", "name": "Diabeticswear", "url": DOMAIN}, "publisher": {"@id": ORG_ID},
+           "mainEntityOfPage": DOMAIN + path, "isPartOf": {"@id": SITE_ID}}
+    crumbs_ld = {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
+        {"@type": "ListItem", "position": 1, "name": "Home", "item": DOMAIN},
+        {"@type": "ListItem", "position": 2, "name": "Kennisbank", "item": DOMAIN + "kennisbank/"},
+        {"@type": "ListItem", "position": 3, "name": a["title"], "item": DOMAIN + path}]}
+    faq_ld = {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [
+        {"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": x}} for q, x in a["faq"]]}
+    PAGE_IMGS[path] = [a["img"]]
+    page(path, a["seo_title"], a["desc"], body, active="kennisbank/", extra=ld(art) + ld(crumbs_ld) + ld(faq_ld),
+         og=f'assets/img/p/{a["img"]}.webp', og_type="article")
 
 
 def build_about():
@@ -898,7 +1000,7 @@ PAGE_IMGS = {}
 def build_sitemap():
     def entry(p):
         imgs = "".join(f"<image:image><image:loc>{DOMAIN}assets/img/p/{i}.webp</image:loc></image:image>" for i in PAGE_IMGS.get(p, []))
-        prio = "1.0" if p == "" else "0.9" if p.startswith("product/") or p == "winkel/" else "0.8" if p.count("/") == 1 and p.split("/")[0] in [c["slug"] for c in CATS] else "0.5"
+        prio = "1.0" if p == "" else "0.9" if p.startswith("product/") or p == "winkel/" else "0.7" if p.startswith("kennisbank/") else "0.8" if p.count("/") == 1 and p.split("/")[0] in [c["slug"] for c in CATS] else "0.5"
         return f"<url><loc>{DOMAIN}{p}</loc><lastmod>{LASTMOD}</lastmod><priority>{prio}</priority>{imgs}</url>"
     open(os.path.join(ROOT, "sitemap.xml"), "w", encoding="utf-8").write(
         '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" '
@@ -931,6 +1033,7 @@ def build_llms():
             extra.append("kleuren " + "/".join(c[0].lower() for c in p["colors"]))
         lines.append(f'- [{p["name"]}]({DOMAIN}product/{slug}/): {price}. {p["seo_desc"]}' + (f' ({"; ".join(extra)})' if extra else ""))
     lines += ["", "## Categorieën", ""] + [f'- [{c["h1"]}]({DOMAIN}{c["slug"]}/): {c["intro"]}' for c in CATS]
+    lines += ["", "## Kennisbank", ""] + [f'- [{a["title"]}]({DOMAIN}kennisbank/{a["slug"]}/): {a["desc"]}' for a in KB["articles"]]
     lines += ["", "## Informatie", "",
               f"- [Veelgestelde vragen]({DOMAIN}veelgestelde-vragen/)", f"- [Over ons]({DOMAIN}over-ons/)", f"- [Contact]({DOMAIN}contact/)",
               f"- [Retourbeleid]({DOMAIN}terugbetaalde-retourneringen/)", f"- [Algemene voorwaarden]({DOMAIN}algemene-voorwaarden/)",
@@ -954,6 +1057,9 @@ if __name__ == "__main__":
         build_category(c)
     for p in PRODUCTS:
         build_product(p)
+    build_kb_index()
+    for a in KB["articles"]:
+        build_kb_article(a)
     build_about()
     build_faq()
     build_contact()
