@@ -40,14 +40,14 @@ SPEC_KEYS = {
            "Aantal": "Menge", "Draagtijd": "Tragedauer"},
 }
 SPEC_VALUES = {
-    "en": [("(alleen beschikbaar in wit)", "(white only)"), ("(alleen beschikbaar in zwart)", "(black only)"),
+    "en": [("11,7 × 13,8 cm (b × h)", "11.7 × 13.8 cm (w × h)"), ("(alleen beschikbaar in wit)", "(white only)"), ("(alleen beschikbaar in zwart)", "(black only)"),
            ("2 per product", "2 per item"), ("katoen", "cotton"), ("elastaan", "elastane"), (" & ", " and "),
            ("Zijkant", "Side"), ("Voorkant", "Front"), ("Klittenband", "Velcro"), ("Transparant", "Transparent"),
            ("50 of 125 stuks", "50 or 125 pieces"), ("stuks", "pieces"), ("dagen", "days"),
            ("Zie label in de hals", "See label in the neck"), ("Zie label in kledingstukken", "See label in the garments"),
            ("Zie label in ", "See label in the item"), ("Zwart", "Black"), ("Wit", "White"), ("Donker groen", "Dark green"),
            ("Donker roze", "Dark pink"), ("Donker blauw", "Dark blue")],
-    "de": [("(alleen beschikbaar in wit)", "(nur in Weiß)"), ("(alleen beschikbaar in zwart)", "(nur in Schwarz)"),
+    "de": [("(b × h)", "(B × H)"), ("(alleen beschikbaar in wit)", "(nur in Weiß)"), ("(alleen beschikbaar in zwart)", "(nur in Schwarz)"),
            ("2 per product", "2 pro Artikel"), ("katoen", "Baumwolle"), ("polyester", "Polyester"), ("elastaan", "Elasthan"),
            ("spandex", "Spandex"), (" & ", " und "), ("Zijkant", "Seitlich"), ("Voorkant", "Vorne"), ("Klittenband", "Klettverschluss"),
            ("Transparant", "Transparent"), ("50 of 125 stuks", "50 oder 125 Stück"), ("stuks", "Stück"), ("dagen", "Tage"),
