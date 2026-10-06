@@ -3,7 +3,9 @@
 Statische website voor [diabeticswear.com](https://diabeticswear.com): kleding met pompzakjes, patch pleisters en accessoires voor mensen met diabetes.
 
 - Geen externe API's, fonts of frameworks. De gegenereerde HTML staat in de repo; de site werkt direct op GitHub Pages.
-- Bron van alle teksten, prijzen en varianten: `tools/content.json`. Na een wijziging: `python3 tools/build.py`.
+- Bron van alle teksten, prijzen en varianten: `tools/content.json` (NL), `tools/content-en.json` en `tools/content-de.json` (vertalingen), `tools/kennisbank.json` (artikelen) en `tools/i18n.py` (interfaceteksten). Na een wijziging: `python3 tools/build.py`.
+- Talen: Nederlands (root), Engels (`/en/`) en Duits (`/de/`), met hreflang-koppelingen en taalkeuze in het menu. Juridische pagina's en de kennisbank zijn alleen Nederlands. Oude Franse, Italiaanse, Spaanse en Zweedse URL's verwijzen door naar het Engels.
+- Kennisbank: `/kennisbank/` met 8 praktische artikelen (algemene informatie, geen medisch advies).
 - Productfoto's: `assets/img/p/` (webp, 1200 px en `-sm` 600 px), omgezet uit de WooCommerce-export.
 - URL's zijn gelijk aan de oude WooCommerce-site (`/product/<slug>/`, categoriepagina's, `/contact/` enz.).
 - Winkelmand: sessionStorage met in-memory fallback. **Afrekenen gaat via een bestelaanvraag per e-mail** (mailto naar info@diabeticswear.com); er is nog geen online betaling gekoppeld.
@@ -16,7 +18,7 @@ Statische website voor [diabeticswear.com](https://diabeticswear.com): kleding m
 - `sitemap.xml` met afbeeldingen, `robots.txt` (zoekmachines en AI-crawlers toegestaan) en `llms.txt` met een feitelijke samenvatting voor AI-assistenten.
 - Oude WooCommerce-URL's in andere talen (`/en/…`, `/de/…` enz.) verwijzen door naar de Nederlandse pagina.
 - Snelheid: preload en `fetchpriority` voor de hoofdafbeelding, `srcset` (600/1200 px), lazy loading onder de vouw, vaste afmetingen tegen layout shift.
-- Lighthouse (lokaal, mobiel en desktop): performance, best practices en SEO 100; toegankelijkheid 96-97 (alleen kleurcontrast wit op teal).
+- Lighthouse (lokaal, mobiel en desktop): performance 99-100, toegankelijkheid, best practices en SEO 100.
 
 Zolang het domein nog niet naar GitHub Pages wijst, verwijzen de canonicals naar diabeticswear.com; de preview op github.io concurreert daardoor niet met de live shop.
 
@@ -24,7 +26,8 @@ Zolang het domein nog niet naar GitHub Pages wijst, verwijzen de canonicals naar
 
 | Token | Hex | Gebruik |
 |---|---|---|
-| `--teal` | `#2BAA92` | Hoofdkleur |
+| `--teal` | `#2BAA92` | Hoofdkleur (decoratief, foto-achtergronden) |
+| `--teal-dark` | `#1F7B6A` | Teal achter/als tekst (contrast ≥ 4,5:1) |
 | `--teal-deep` | `#145F52` | Topbar, prijzen |
 | `--cream` | `#F3F2EE` | Pagina-achtergrond |
 | `--mint` | `#7DC59A` | Accent |
