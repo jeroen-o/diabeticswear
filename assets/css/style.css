@@ -371,3 +371,5 @@ img{height:auto}
 .nav a{white-space:nowrap}
 @media(min-width:1221px){.nav{gap:1.05rem}}
 .footer .logo b{color:var(--teal)}
+.nav{align-items:center}
+@media(max-width:1220px){.nav{align-items:flex-start}}

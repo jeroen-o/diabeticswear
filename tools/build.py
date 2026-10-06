@@ -24,7 +24,7 @@ BY = {p["slug"]: p for p in PRODUCTS}
 CATS = C["cats"]
 KB = json.load(open(os.path.join(ROOT, "tools", "kennisbank.json"), encoding="utf-8"))
 SIZE_TABLE = [("Lengte (zijde 1)", [70, 73, 75, 77, 80, 81]), ("Breedte (zijde 2)", [50, 51, 52, 53, 55, 56]),
-              ("Zakje breedte (zijde 3)", [12] * 6), ("Zakje hoogte (zijde 4)", [14] * 6)]
+              ("Zakje breedte (zijde 3)", [11.7] * 6), ("Zakje hoogte (zijde 4)", [13.8] * 6)]
 SIZE_COLS = ["XS", "S", "M", "L", "XL", "XXL"]
 MAIL = "info@diabeticswear.com"
 TEL, TEL_LINK = "+31 6 10022060", "tel:+31610022060"
@@ -1068,9 +1068,15 @@ def page_raw(path, title, desc, body, active=None, extra="", og=None, alts=None,
     PAGES.append(path)
 
 
+def num(v):
+    """Getal in de notatie van de taal: 11,7 (nl/de) of 11.7 (en)."""
+    t = f"{v:g}"
+    return t if LANG == "en" else t.replace(".", ",")
+
+
 def size_table_html():
     head_ = "".join(f"<th scope='col'>{c}</th>" for c in SIZE_COLS)
-    rows = "".join(f"<tr><th scope='row'>{e(n)}</th>" + "".join(f"<td>{v}</td>" for v in vals) + "</tr>"
+    rows = "".join(f"<tr><th scope='row'>{e(n)}</th>" + "".join(f"<td>{num(v)}</td>" for v in vals) + "</tr>"
                    for n, (_, vals) in zip(U("size_rows"), SIZE_TABLE))
     return f'<div class="table-wrap"><table><caption class="sr-only">{U("size_caption")}</caption><thead><tr><th scope="col">{U("size_head")}</th>{head_}</tr></thead><tbody>{rows}</tbody></table></div>'
 
