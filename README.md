@@ -20,6 +20,8 @@ Statische website voor [diabeticswear.com](https://diabeticswear.com): kleding m
 - Snelheid: preload en `fetchpriority` voor de hoofdafbeelding, `srcset` (600/1200 px), lazy loading onder de vouw, vaste afmetingen tegen layout shift.
 - Lighthouse (lokaal, mobiel en desktop): performance 99-100, toegankelijkheid, best practices en SEO 100.
 
+**Testfase:** `NOINDEX = True` in `tools/build.py` zet alle pagina's op `noindex, nofollow` en haalt de sitemap uit robots.txt. Zet op `False` en bouw opnieuw zodra de site in Google mag.
+
 Zolang het domein nog niet naar GitHub Pages wijst, verwijzen de canonicals naar diabeticswear.com; de preview op github.io concurreert daardoor niet met de live shop.
 
 ## Kleuren

@@ -16,6 +16,9 @@ from i18n import (BASE, CATLABEL as CATLABEL_I, COLORS, HTML_LANG, IN_LANG, JS, 
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DOMAIN = "https://diabeticswear.com/"
+# Zoekmachines buiten de deur houden (preview/testfase). Zet op False zodra de site live mag in Google.
+NOINDEX = True
+NOINDEX_ROBOTS = "noindex, nofollow"
 C = json.load(open(os.path.join(ROOT, "tools", "content.json"), encoding="utf-8"))
 PRODUCTS = C["products"]
 for _p in PRODUCTS:
@@ -83,6 +86,8 @@ def hreflang_links(path, alts):
 def head(R, path, title, desc, extra="", og_img=None, og_type="website", preload=None, product=None,
          robots="index,follow,max-image-preview:large,max-snippet:-1", alts=None):
     canon = DOMAIN + path
+    if NOINDEX:
+        robots = NOINDEX_ROBOTS
     og = og_img or "assets/img/p/diabetes-2-pocket-sportlegging-1.webp"
     pre = ""
     if preload:
@@ -1278,6 +1283,7 @@ def build_redirect(path, target):
     open(fp, "w", encoding="utf-8").write(
         f'<!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
         f'<title>Doorverwijzen naar Diabeticswear</title><link rel="canonical" href="{DOMAIN}{target}">'
+        + (f'<meta name="robots" content="{NOINDEX_ROBOTS}">' if NOINDEX else "") +
         f'<meta http-equiv="refresh" content="0; url={R}{target}"></head>'
         f'<body><p><a href="{R}{target}">Ga naar de nieuwe pagina</a></p></body></html>')
     REDIRECTS.append(path)
@@ -1355,6 +1361,10 @@ def build_sitemap():
             "PerplexityBot", "Applebot", "Applebot-Extended"]
     robots = "# Diabeticswear: zoekmachines en AI-assistenten zijn welkom.\n" + \
         "".join(f"User-agent: {b}\nAllow: /\n\n" for b in bots) + "User-agent: *\nAllow: /\n\n" + f"Sitemap: {DOMAIN}sitemap.xml\n"
+    if NOINDEX:
+        # Crawlen blijft toegestaan, anders zien zoekmachines de noindex-tag niet.
+        robots = ("# Testfase: alle pagina's hebben <meta name=\"robots\" content=\"noindex, nofollow\">.\n"
+                  "# Crawlen blijft toegestaan zodat zoekmachines die tag kunnen lezen.\nUser-agent: *\nAllow: /\n")
     open(os.path.join(ROOT, "robots.txt"), "w", encoding="utf-8").write(robots)
 
 
